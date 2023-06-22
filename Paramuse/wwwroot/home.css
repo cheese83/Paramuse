@@ -1,0 +1,226 @@
+@font-face {
+    font-family: "Ink Free";
+    src: url("Inkfree.woff2");
+}
+
+@font-face {
+    /* Not all media control symbols are available everywhere, so provide a font with them all. */
+    font-family: "Symbola";
+    src: url("Symbola_hint-subset.woff2");
+}
+
+html {
+    background: black;
+    color: white;
+    font-family: "Ink Free";
+}
+
+body {
+    max-width: 60em;
+    margin: auto;
+}
+
+button {
+    width: 2em;
+    height: 2em;
+    background: black;
+    color: #AA0;
+    border-radius: 0.5em;
+    border-style: solid;
+    border-color: #550;
+    font-size: 1.5em;
+    font-weight: bold;
+    font-family: "Symbola";
+}
+
+    button:hover {
+        color: #FF9;
+        text-shadow: 0 0 0.5em #FF0, 0 0 1.5em #FF0;
+        box-shadow: 0 0 0.5em #FF0;
+        background: #110;
+        border-color: #AA0;
+    }
+
+.album-cover {
+    color: #555;
+}
+
+#player, #album-list {
+    margin: min(2vh, 1em) min(2vw, 1em);
+    border-style: solid;
+    border-radius: 1em;
+    border-color: #A27;
+}
+
+#player {
+    overflow: hidden;
+    position: sticky;
+    top: min(2vh, 1em);
+    display: grid;
+    grid-template-columns: clamp(4.5em, min(18vh, 18vw), 12em) 1fr;
+    grid-template-rows: repeat(3, clamp(1.5em, min(6vh, 6vw), 4em)) 1fr;
+    column-gap: 1em;
+    align-items: center;
+    padding-top: clamp(0.5em, 2vh, 0.8em);
+    padding-left: clamp(0.6em, min(3vh, 2vw), 1em);
+    padding-right: clamp(0.6em, min(3vh, 2vw), 1em);
+    background: black;
+    box-shadow: 0 0.5em 1em black, 0 -2em 0 black;
+}
+
+    #player.playing {
+        border-color: #FBD;
+        box-shadow: 0 0 0.5em #FAC, 0 0 2em #C05, 0 0 4em #803, inset 0 0 0.5em #FAC, inset 0 0 2em #C05, inset 0 0 4em #803, 0 -2em 0 black;
+        background: #100A0C;
+    }
+
+    #player > .album-cover {
+        grid-row: 1 / span 3;
+        grid-column: 1;
+        height: 100%;
+        aspect-ratio: 1/1;
+        margin: 0 auto;
+        display: block;
+        font-size: clamp(4.5em, min(18vh, 18vw), 12em);
+        line-height: 1em;
+        text-align: center;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position-x: center;
+        background-position-y: center;
+        text-decoration: none;
+    }
+
+    #player > :is(.album-title, .track-artist, .track-title) {
+        grid-column: 2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-size: clamp(1em, min(4vh, 4vw), 2em);
+    }
+
+    #player > .controls {
+        grid-column: 1 / span 2;
+        width: 100%;
+        display: grid;
+        grid-template-rows: 3em;
+        grid-template-columns: repeat(4, auto) 1fr 8em;
+        padding: min(1.5vh, 0.8em) 0;
+        box-sizing: border-box;
+        line-height: 3em;
+    }
+
+        #player > .controls > label > input {
+            display: none;
+        }
+
+            #player > .controls > label > input:checked + button {
+                color: #7F7;
+                text-shadow: 0 0 0.5em #2F2, 0 0 1.5em #2F2;
+                background: #010;
+            }
+
+        #player > .controls > .timeline {
+            display: grid;
+            grid-template-columns: 1fr min-content;
+        }
+
+            #player > .controls > .timeline > input {
+                margin: 0 0.5em;
+            }
+
+            #player > .controls > .timeline > div {
+                white-space: nowrap;
+                margin-right: 0.5em;
+                font-family: monospace;
+            }
+
+        #player > .controls > .volume {
+            display: grid;
+            grid-template-columns: 1.5em 1fr;
+        }
+
+            #player > .controls > .volume > input {
+                width: 100%;
+                margin: 0;
+            }
+
+#album-list {
+    list-style: none;
+    padding: 0;
+}
+
+    #album-list details {
+        margin: 0.5em;
+        padding: 0.5em 1.5em;
+        border-style: solid;
+        border-radius: 1em;
+        border-color: #077;
+    }
+
+        #album-list details ol {
+            padding-left: 1em;
+            margin-top: 0.5em;
+        }
+
+        #album-list details.playing {
+            border-color: #0FF;
+            box-shadow: 0 0 0.5em #0FF, 0 0 2em #099, 0 0 4em #033, inset 0 0 0.5em #0FF, inset 0 0 2em #099, inset 0 0 4em #033;
+            background: #000505;
+        }
+
+            #album-list details.playing li.playing {
+                text-shadow: 0 0 0.2em #5F5, 0 0 0.5em #3F3;
+                color: #9F9;
+            }
+
+    #album-list summary {
+        list-style: none;
+        display: grid;
+        grid-template-rows: 1.5em 1.5em;
+        grid-template-columns: 3em 1fr 3em;
+        column-gap: 1em;
+    }
+
+        #album-list summary > .album-cover {
+            max-width: 1em;
+            max-height: 1em;
+            grid-column: 1;
+            grid-row: 1 / span 2;
+            font-size: 3em;
+            text-align: center;
+            line-height: 1em;
+            justify-self: center;
+            align-self: center;
+        }
+
+        #album-list summary > :is(.album-artist, .album-title) {
+            line-height: 1.5em;
+            grid-column: 2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        #album-list summary > button {
+            grid-row: 1 / span 2;
+            grid-column: 3;
+        }
+
+    #album-list .track-artist {
+        display: none;
+    }
+
+@media (max-width: 40rem) {
+    #player > .controls {
+        grid-template-rows: 3em clamp(2em, 10vh, 3em);
+        grid-template-columns: repeat(5, auto);
+        padding-bottom: 0;
+    }
+
+        #player > .controls > .timeline {
+            grid-row: 2;
+            grid-column: 1 / span 5;
+            line-height: clamp(2em, 10vh, 3em);
+        }
+}

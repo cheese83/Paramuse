@@ -1,0 +1,5 @@
+/.vs/
+/Paramuse/bin/
+/Paramuse/obj/
+*.user
+.config/

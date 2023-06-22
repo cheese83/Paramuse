@@ -1,0 +1,70 @@
+﻿@model System.Collections.Immutable.IImmutableList<Paramuse.Models.Album>
+
+@section styles
+{
+    <link rel="stylesheet" href="~/home.css" asp-append-version="true" />
+}
+
+<div id="player">
+    <div class="track-artist"></div>
+    <div class="album-title"></div>
+    <div class="track-title"></div>
+    <a class="album-cover"></a>
+    <div class="controls">
+        @* &#xFE0E; is the unicode text variation selector, to make a symbol render as a plain text character instead of a coloured emoji. *@
+        <button class="previous" title="Previous track">⏮&#xFE0E;</button>
+        <button class="play" title="Play/pause">⏯&#xFE0E;</button>
+        <label title="Shuffle. If enabled, albums will be chosen at random instead of alphabetical order. Tracks within albums will still be played in order.">
+            <input type="checkbox" name="shuffle" checked>
+            <button class="shuffle">🔀&#xFE0E;</button>
+        </label>
+        <button class="next" title="Next track">⏭&#xFE0E;</button>
+        <div class="timeline">
+            <input type="range" value="0" autocomplete="off">
+            <div>0:00/0:00</div>
+        </div>
+        <div class="volume">
+            <span>🔊</span>
+            <input type="range" min="-18" max="6" step="1" value="0">
+        </div>
+    </div>
+</div>
+
+<ul id="album-list">
+    @{ var albumIndex = 0; }
+    @foreach (var album in Model)
+    {
+        <li id="album-@(albumIndex++)">
+            <details>
+                <summary>
+                    <div class="album-artist">@album.Artist</div>
+                    <div class="album-title">@album.Name</div>
+                    @if (album.CoverPath != "")
+                    {
+                        <img class="album-cover" src="@Url.Action("Cover", new { path = album.CoverPath })" loading="lazy">
+                    }
+                    else
+                    {
+                        <div class="album-cover">?</div>
+                    }
+                    <button>⏵</button>
+                </summary>
+                <ol>
+                    @foreach (var track in album.Tracks)
+                    {
+                        <li>
+                            <div class="track-artist">@track.Artist</div>
+                            <div class="track-title">@track.Title</div>
+                            <audio preload="none" src="@Url.Action("Track", new { path = track.Path })" data-gain="@track.Gain"></audio>
+                        </li>
+                    }
+                </ol>
+            </details>
+        </li>
+    }
+</ul>
+
+@section scripts
+{
+    <script src="~/home.js" asp-append-version="true"></script>
+}
