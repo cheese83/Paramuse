@@ -62,5 +62,5 @@ Note that the volume control goes from -18dB all the way up to +6dB (in 1dB step
 ## Other stuff
 
 Paramuse uses the following libraries:
-* [ImageSharp](https://github.com/SixLabors/ImageSharp) ([Apache License, Version 2.0](Library Licenses/LICENSE-2.0.txt))
-* [TagLib-sharp](https://github.com/mono/taglib-sharp) ([LGPL-2.1](Library Licenses/COPYING))
+* [ImageSharp](https://github.com/SixLabors/ImageSharp) ([Apache License, Version 2.0](<Library Licenses/LICENSE-2.0.txt>))
+* [TagLib-sharp](https://github.com/mono/taglib-sharp) ([LGPL-2.1](<Library Licenses/COPYING>))
