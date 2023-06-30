@@ -153,6 +153,10 @@
         trackArtist.innerHTML = currentTrackContainer.querySelector('.track-artist').innerHTML || currentAlbumContainer.querySelector('.album-artist').innerHTML;
         trackTitle.innerHTML = currentTrackContainer.querySelector('.track-title').innerHTML;
 
+        albumTitle.setAttribute('title', albumTitle.textContent);
+        trackArtist.setAttribute('title', trackArtist.textContent);
+        trackTitle.setAttribute('title', trackTitle.textContent);
+
         const coverSrc = currentAlbumContainer.querySelector('img')?.getAttribute('src');
         albumCover.style.backgroundImage = coverSrc ? `url('${coverSrc}')` : '';
         albumCover.innerHTML = coverSrc ? '' : '?';
