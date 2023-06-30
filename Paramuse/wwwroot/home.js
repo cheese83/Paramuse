@@ -162,6 +162,8 @@
         albumCover.innerHTML = coverSrc ? '' : '?';
         albumCover.setAttribute('href', `#${currentAlbumContainer.id}`);
 
+        document.title = `${trackTitle.textContent} - Paramuse`;
+
         navigator.mediaSession.metadata = new MediaMetadata({
             album: albumTitle.innerHTML,
             artist: trackArtist.innerHTML,
