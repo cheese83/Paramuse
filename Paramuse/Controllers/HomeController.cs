@@ -19,12 +19,13 @@ namespace Paramuse.Controllers
             _albums = albumList.Albums;
         }
 
-        [ResponseCache(Duration = 60 * 60 * 24)]
+        [ResponseCache(Duration = 60 * 5)]
         public IActionResult Index()
         {
             return View(_albums);
         }
 
+        [ResponseCache(VaryByQueryKeys = new[] { "*" }, Duration = 60 * 60 * 24 * 7)]
         public IActionResult Track(string path)
         {
             if (!_albums.SelectMany(album => album.Tracks).Any(track => track.Path == path))
@@ -38,7 +39,7 @@ namespace Paramuse.Controllers
             return PhysicalFile(Path.Combine(_basePath, path), mimeType, enableRangeProcessing: true);
         }
 
-        [ResponseCache(VaryByQueryKeys = new[] { "*" }, Duration = 60 * 60 * 24)]
+        [ResponseCache(VaryByQueryKeys = new[] { "*" }, Duration = 60 * 60 * 24 * 7)]
         public async Task<IActionResult> Cover(string path)
         {
             var maxImageBytes = 64 * 1024;
