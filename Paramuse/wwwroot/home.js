@@ -35,15 +35,20 @@
     };
 
     const setVolume = () => {
-        const trackDb = parseFloat(currentAudio.dataset.gain);
         const volumeDb = parseFloat(controls.volume.value);
-        // The volume control allows >0dB to compensate for modern music having strongly negative ReplayGain values.
-        // That means the overall volume can end up >0dB here, and needs to be clamped because audio elements don't allow it.
-        const totalDb = Math.min(volumeDb + trackDb, 0);
-        const volume = Math.pow(10, totalDb / 20);
 
-        currentAudio.volume = volume;
-        controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB (${totalDb}dB with ReplayGain)`);
+        if (currentAudio) {
+            const trackDb = parseFloat(currentAudio.dataset.gain);
+            // The volume control allows >0dB to compensate for modern music having strongly negative ReplayGain values.
+            // That means the overall volume can end up >0dB here, and needs to be clamped because audio elements don't allow it.
+            const totalDb = Math.min(volumeDb + trackDb, 0);
+            const volume = Math.pow(10, totalDb / 20);
+
+            currentAudio.volume = volume;
+            controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB (${totalDb.toFixed(2)}dB with ReplayGain)`);
+        } else {
+            controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB`);
+        }
     };
 
     // Preload the next track so it's ready to play when the current track ends.
