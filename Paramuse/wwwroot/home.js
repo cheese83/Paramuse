@@ -249,5 +249,6 @@
     controls.shuffle.addEventListener('click', event => {
         // Buttons inside labels don't operate the selected input normally, so do it here instead.
         controls.shuffle.previousElementSibling.checked = !controls.shuffle.previousElementSibling.checked;
+        cueNextTrack();
     });
 })();
