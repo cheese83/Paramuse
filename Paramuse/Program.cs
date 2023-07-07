@@ -2,6 +2,9 @@ using Paramuse.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// The server header is a useless waste of bytes, so turn it off.
+builder.WebHost.UseKestrel(option => option.AddServerHeader = false);
+
 #if !DEBUG
 builder.WebHost.UseUrls($"http://*:{builder.Configuration["Port"]}");
 #endif
