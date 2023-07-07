@@ -50,13 +50,22 @@
                     <button>⏵</button>
                 </summary>
                 <ol>
-                    @foreach (var track in album.Tracks)
-                    {
-                        <li>
-                            <div class="track-artist">@track.Artist</div>
-                            <div class="track-title">@track.Title</div>
-                            <audio preload="none" src="@Url.Action("Track", new { path = track.Path })" data-gain="@track.Gain"></audio>
-                        </li>
+                    @{
+                        var discs = album.Tracks.GroupBy(track => track.DiscNo);
+                        var hasMultipleDiscs = discs.Count() > 1;
+
+                        foreach (var disc in discs)
+                        {
+                            foreach (var (track, index) in disc.Select((track, index) => (track, index)))
+                            {
+                                var value = hasMultipleDiscs && index == 0 ? (disc.Key * 100) + index + 1 : (int?)null;
+                                <li value="@value">
+                                    <div class="track-artist">@track.Artist</div>
+                                    <div class="track-title">@track.Title</div>
+                                    <audio preload="none" src="@Url.Action("Track", new { path = track.Path })" data-gain="@track.Gain"></audio>
+                                </li>
+                            }
+                        }
                     }
                 </ol>
             </details>
