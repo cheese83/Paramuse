@@ -17,6 +17,7 @@ html {
 
 body {
     max-width: 60em;
+    min-width: 20em;
     margin: auto;
 }
 
@@ -46,7 +47,7 @@ button {
 }
 
 #player, #album-list {
-    margin: min(2vh, 1em) min(2vw, 1em);
+    margin: min(2vh, 1em) clamp(0.4em, 2vw, 1em);
     border-style: solid;
     border-radius: 1em;
     border-color: #A27;
