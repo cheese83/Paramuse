@@ -20,6 +20,42 @@
     let currentAudio = null;
     let nextAudio = null;
 
+    const settings = {
+        get: key => {
+            try {
+                return JSON.parse(localStorage.getItem(key));
+            } catch {
+                // Local storage might be disabled, in which case default settings should be used.
+                return null;
+            }
+        },
+        set: (key, value) => {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+            } catch {
+                // Can't do anything if local storage is disabled.
+            }
+        },
+        load: () => {
+            const volumeDb = settings.get('VolumeDb');
+            if (volumeDb !== null) {
+                controls.volume.value = volumeDb;
+                setVolume();
+            }
+
+            const shuffle = settings.get('Shuffle');
+            if (shuffle !== null) {
+                controls.shuffle.previousElementSibling.checked = shuffle;
+            }
+
+            const currentTrack = settings.get('CurrentTrack');
+            if (currentTrack !== null) {
+                nextAudio = albumList.querySelector(`audio[src="${currentTrack}"]`);
+                advanceTrack(false);
+            }
+        }
+    };
+
     const updateTimeline = event => {
         const formatTime = totalSeconds => {
             const minutes = Math.trunc(totalSeconds / 60);
@@ -49,6 +85,8 @@
         } else {
             controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB`);
         }
+
+        settings.set('VolumeDb', volumeDb);
     };
 
     // Preload the next track so it's ready to play when the current track ends.
@@ -105,7 +143,7 @@
         }
     };
 
-    const advanceTrack = () => {
+    const advanceTrack = (play) => {
         if (!nextAudio) {
             console.log('No track cued.');
             return;
@@ -128,22 +166,27 @@
         currentAudio?.removeEventListener('timeupdate', updateTimeline);
         nextAudio.addEventListener('timeupdate', updateTimeline);
 
-        currentAudio?.removeEventListener('ended', advanceTrack);
-        nextAudio.addEventListener('ended', advanceTrack, { once: true });
+        currentAudio?.removeEventListener('ended', () => advanceTrack(true));
+        nextAudio.addEventListener('ended', () => advanceTrack(true), { once: true });
 
         currentAudio = nextAudio;
         nextAudio = null;
 
         setVolume();
         showCurrentlyPlaying();
-        playCurrent();
         cueNextTrack();
+
+        if (play) {
+            playCurrent();
+        }
 
         if (isAlbumChange) {
             // TODO: The user might be browsing the list, in which case auto-scrolling would be annoying.
             // Consider only scrolling if the previous album is visible(which would indicate that the user hasn't scrolled since the last auto-scroll).
             scrollAlbumListToCurrent();
         }
+
+        settings.set('CurrentTrack', currentAudio.getAttribute('src'));
     };
 
     const showCurrentlyPlaying = () => {
@@ -200,7 +243,7 @@
             const trackContainer = albumContainer.querySelector('li');
 
             nextAudio = trackContainer.querySelector('audio');
-            advanceTrack();
+            advanceTrack(true);
         }
     });
 
@@ -219,7 +262,7 @@
                 playCurrent();
             } else {
                 cueNextTrack();
-                advanceTrack();
+                advanceTrack(true);
             }
         }
     };
@@ -230,7 +273,7 @@
 
     const handlePreviousTrack = () => {
         cueNextTrack(true);
-        advanceTrack();
+        advanceTrack(true);
     };
     controls.previous.addEventListener('click', handlePreviousTrack);
     navigator.mediaSession.setActionHandler('previoustrack', handlePreviousTrack);
@@ -240,7 +283,7 @@
             cueNextTrack();
         }
 
-        advanceTrack();
+        advanceTrack(true);
     };
     controls.next.addEventListener('click', handleNextTrack);
     navigator.mediaSession.setActionHandler('nexttrack', handleNextTrack);
@@ -253,7 +296,12 @@
 
     controls.shuffle.addEventListener('click', event => {
         // Buttons inside labels don't operate the selected input normally, so do it here instead.
-        controls.shuffle.previousElementSibling.checked = !controls.shuffle.previousElementSibling.checked;
+        const shuffle = !controls.shuffle.previousElementSibling.checked;
+        controls.shuffle.previousElementSibling.checked = shuffle;
         cueNextTrack();
+
+        settings.set('Shuffle', shuffle);
     });
+
+    settings.load();
 })();
