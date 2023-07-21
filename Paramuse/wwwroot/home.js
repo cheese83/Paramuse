@@ -1,5 +1,123 @@
 ﻿'use strict';
 (() => {
+    // Frequency range of the bars. Chosen so they cover exactly one octave each.
+    const minFreq = 20;
+    const maxFreq = 20000;
+    // Amplitude range of the bars. Chosen so normal music utilizes the whole range, with the red peak segments only lighting rarely.
+    const minDb = -72;
+    const maxDb = -21;
+
+    const barsSegments = Array.from(document.querySelectorAll('#player > .spectrum > div')).map(bar => Array.from(bar.children));
+    const barCount = barsSegments.length;
+    const segmentCount = barsSegments[0].length;
+    // FFT data is read as a byte representing dB, so this is how much of that byte each segment covers.
+    const perSegmentValue = 256 / segmentCount;
+    const barData = new Array(barCount).fill(0);
+    const binsPerBar = new Array(barCount);
+    const barMaxFreqs = barData.map((_, barIndex) => {
+        // Multiply the frequencies by 2 because the result needs to be the upper bound of the bar, and each bar is 1 octave.
+        const maxLogFreq = Math.log10(maxFreq * 2);
+        const minLogFreq = Math.log10(minFreq * 2);
+        const perBar = (maxLogFreq - minLogFreq) / barCount;
+        return Math.pow(10, (perBar * barIndex) + minLogFreq);
+    });
+
+    const audioContext = new AudioContext();
+    const analyser = audioContext.createAnalyser();
+
+    // 512 (2^9) is the smallest value that will give at least one bin per bar (at a 44.1kHz sampling rate).
+    analyser.fftSize = Math.pow(2, 12);
+    analyser.minDecibels = minDb;
+    analyser.maxDecibels = maxDb;
+    // Make it move quite quickly, so it looks better with the peak hold (which is in the CSS).
+    analyser.smoothingTimeConstant = 0.4;
+    analyser.connect(audioContext.destination);
+
+    const bufferLength = analyser.frequencyBinCount;
+    const rawData = new Uint8Array(bufferLength);
+
+    const updatePeriodMilliseconds = 50;
+    let lastUpdateTimeStamp = 0;
+    const updateBars = (timeStamp) => {
+        window.requestAnimationFrame(updateBars);
+
+        if (timeStamp - lastUpdateTimeStamp < updatePeriodMilliseconds) {
+            // Try to keep a consistent update rate, as this affects the smoothing (in combination with smoothingTimeConstant).
+            // Also, there's no need to waste resources updating a zillion times a second on high-refresh-rate displays.
+            return;
+        } else {
+            lastUpdateTimeStamp = timeStamp;
+        }
+
+        analyser.getByteFrequencyData(rawData);
+
+        // The FFT data is spaced linearly with frequency. It has to be converted to log frequency to fit the octave-sized bars.
+        // Do this by summing every bin that is within the frequency range of each bar, and then averaging.
+        barData.fill(0);
+        binsPerBar.fill(0);
+        let currentBarIndex = 0;
+        rawData.forEach((rawValue, rawIndex) => {
+            const nyquistFreq = audioContext.sampleRate / 2;
+            const binFreq = nyquistFreq * (rawIndex / (bufferLength - 1));
+
+            if (binFreq < minFreq || binFreq > maxFreq) {
+                return;
+            }
+
+            if (binFreq > barMaxFreqs[currentBarIndex]) {
+                currentBarIndex++;
+            }
+
+            barData[currentBarIndex] += rawValue;
+            binsPerBar[currentBarIndex]++;
+        });
+
+        for (let barIndex = 0; barIndex < barCount; barIndex++) {
+            barData[barIndex] /= binsPerBar[barIndex];
+        }
+
+        barsSegments.forEach((bar, barIndex) => {
+            bar.forEach((segment, segmentIndex) => {
+                const lit = barData[barIndex] > segmentIndex * perSegmentValue;
+                segment.classList.toggle('lit', lit);
+            });
+        });
+    };
+
+    updateBars();
+
+    // It's not possible to remove a source once added to an audio element, so store them all for reuse instead of creating a new one each time a track is played.
+    // See https://github.com/WebAudio/web-audio-api/issues/1202
+    const sources = new Map();
+    let currentSource = null;
+    window.spectrumAnalyser = {
+        setSource: audioElement => {
+            currentSource?.disconnect();
+
+            const existingSource = sources.get(audioElement);
+
+            if (existingSource) {
+                currentSource = existingSource;
+            } else {
+                currentSource = audioContext.createMediaElementSource(audioElement);
+                sources.set(audioElement, currentSource);
+            }
+
+            currentSource.connect(analyser);
+        },
+        setVolume: newVolumeDb => {
+            analyser.minDecibels = minDb + newVolumeDb;
+            analyser.maxDecibels = maxDb + newVolumeDb;
+        },
+        start: () => {
+            // Chromium doesn't allow an AudioContext to start unless triggered by user action,
+            // so call this at the same time as audio starts playing, otherwise it won't be routed.
+            audioContext.resume();
+        }
+    };
+})();
+
+(() => {
     const albumList = document.getElementById('album-list');
     const player = document.querySelector('#player');
     const trackArtist = player.querySelector('.track-artist');
@@ -82,6 +200,8 @@
 
             currentAudio.volume = volume;
             controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB (${totalDb.toFixed(2)}dB with ReplayGain)`);
+
+            window.spectrumAnalyser.setVolume(totalDb);
         } else {
             controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB`);
         }
@@ -120,6 +240,7 @@
 
     const playCurrent = () => {
         const play = () => {
+            window.spectrumAnalyser.start();
             currentAudio.play().catch(error => {
                 setPlayingStatus();
                 // TODO: Show the error?
@@ -172,8 +293,8 @@
         currentAudio = nextAudio;
         nextAudio = null;
 
-        setVolume();
         showCurrentlyPlaying();
+        setVolume();
         cueNextTrack();
 
         if (play) {
@@ -220,6 +341,8 @@
                 src: coverSrc
             }] : undefined
         });
+
+        window.spectrumAnalyser.setSource(currentAudio);
     };
 
     const scrollAlbumListToCurrent = () => {

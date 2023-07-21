@@ -9,6 +9,17 @@
     <div class="track-artist"></div>
     <div class="album-title"></div>
     <div class="track-title"></div>
+    <div class="spectrum">
+        @for (int bar = 0; bar < 10; bar++)
+        {
+            <div>
+                @for (int segment = 0; segment < 8; segment++)
+                {
+                    <div></div>
+                }
+            </div>
+        }
+    </div>
     <a class="album-cover"></a>
     <div class="controls">
         @* &#xFE0E; is the unicode text variation selector, to make a symbol render as a plain text character instead of a coloured emoji. *@

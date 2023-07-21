@@ -9,6 +9,16 @@
     src: url("Symbola_hint-subset.woff2");
 }
 
+@keyframes peakHold {
+    from {
+        opacity: 0.5;
+    }
+
+    to {
+        opacity: 0;
+    }
+}
+
 html {
     background: black;
     color: white;
@@ -98,7 +108,69 @@ button {
         overflow: hidden;
         text-overflow: ellipsis;
         font-size: clamp(1em, min(4vh, 4vw), 2em);
+        text-shadow: 0 0 0.2em black; /* Give the text a little contrast against the bright spectrum analyser. */
     }
+
+    #player > .album-title {
+        grid-row: 1;
+    }
+
+    #player > .track-artist {
+        grid-row: 2;
+    }
+
+    #player > .track-title {
+        grid-row: 3;
+    }
+
+    #player > .spectrum {
+        grid-column: 2;
+        grid-row: 1 / span 3;
+        width: 100%;
+        height: 100%;
+        box-sizing: border-box;
+        display: flex;
+        gap: 4%;
+        z-index: -1;
+    }
+
+        #player > .spectrum > div {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column-reverse; /* Reverse so that index 0 is at the bottom, to make animating easier. */
+            gap: 5%;
+        }
+
+            #player > .spectrum > div > div {
+                height: 100%;
+                width: 100%;
+                border-radius: 10%;
+                background: radial-gradient(#5E2 30%, #5E29);
+                box-shadow: 0 0 1em 0.2em #0F0A;
+                opacity: 0;
+            }
+
+                #player > .spectrum > div > div:nth-last-child(-n+3) {
+                    background: radial-gradient(#FD2 30%, #FD29);
+                    box-shadow: 0 0 0.8em 0.2em #FD28;
+                }
+
+                #player > .spectrum > div > div:last-child {
+                    background: radial-gradient(#F20 40%, #F209);
+                    box-shadow: 0 0 0.7em 0.2em #F008;
+                }
+
+                #player > .spectrum > div > div.lit {
+                    opacity: 1;
+                }
+
+                /* Apply the animation with :not so that it happens every time the .lit class is removed. */
+                #player > .spectrum > div > div:not(.lit) {
+                    animation-duration: 2s;
+                    animation-name: peakHold;
+                    animation-timing-function: ease-in;
+                }
 
     #player > .controls {
         grid-column: 1 / span 2;
