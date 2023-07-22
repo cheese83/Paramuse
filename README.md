@@ -14,6 +14,10 @@ This is what it looks like running on a PC:
 And on a phone:  
 ![Phone screenshot](Screenshots/Phone.jpg)
 
+Back in the 80's I wanted a hi-fi with an LED spectrum analyser on it, but I couldn't afford one. Now I don't need to be able to, because I can conjure one from nothing but a bit of text:
+
+https://github.com/cheese83/Paramuse/assets/7817478/79793617-f709-49ce-b907-2fad1d2a1128
+
 ## Requirements
 
 ### Server
