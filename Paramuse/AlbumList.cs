@@ -20,6 +20,7 @@ namespace Paramuse.Models
         int TrackNo,
         int DiscNo,
         double Gain,
+        double Peak,
         bool HasCover,
         string Path
     )
@@ -36,6 +37,9 @@ namespace Paramuse.Models
             Gain: !double.IsNaN(tag.ReplayGainAlbumGain) ? tag.ReplayGainAlbumGain
                 : !double.IsNaN(tag.ReplayGainTrackGain) ? tag.ReplayGainTrackGain
                 : 0,
+            Peak: !double.IsNaN(tag.ReplayGainAlbumPeak) ? tag.ReplayGainAlbumPeak
+                : !double.IsNaN(tag.ReplayGainTrackPeak) ? tag.ReplayGainTrackPeak
+                : 1,
             Path: path
         )
         { }

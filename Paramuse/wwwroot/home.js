@@ -88,11 +88,7 @@
     }
 
     window.spectrumAnalyser = {
-        create: create,
-        setVolume: (analyser, newVolumeDb) => {
-            analyser.minDecibels = minDb + newVolumeDb;
-            analyser.maxDecibels = maxDb + newVolumeDb;
-        },
+        create: create
     };
 })();
 
@@ -117,13 +113,15 @@
     const audioContext = new AudioContext();
     const analyserContainer = document.querySelector('#player > .spectrum');
     const analyserNode = window.spectrumAnalyser.create(audioContext, analyserContainer);
- 
+    const gainNode = audioContext.createGain();
+
     const currentAudio = document.createElement('audio');
     const sourceNode = audioContext.createMediaElementSource(currentAudio);
     const nextAudio = document.createElement('audio');
 
     sourceNode.connect(analyserNode);
-    analyserNode.connect(audioContext.destination);
+    analyserNode.connect(gainNode);
+    gainNode.connect(audioContext.destination);
 
     const getTrackContainer = audio => {
         const src = audio.getAttribute('src');
@@ -191,15 +189,16 @@
         if (currentSrc) {
             const trackContainer = getTrackContainer(currentAudio);
             const trackDb = parseFloat(trackContainer.dataset.gain);
+            const trackPeak = parseFloat(trackContainer.dataset.peak);
             // The volume control allows >0dB to compensate for modern music having strongly negative ReplayGain values.
-            // That means the overall volume can end up >0dB here, and needs to be clamped because audio elements don't allow it.
-            const totalDb = Math.min(volumeDb + trackDb, 0);
+            // Limit the gain to prevent clipping.
+            const maxGain = -20 * Math.log10(trackPeak);
+            const totalDb = Math.min(volumeDb + trackDb, maxGain);
             const volume = Math.pow(10, totalDb / 20);
 
-            currentAudio.volume = volume;
+            gainNode.gain.setValueAtTime(volume, gainNode.context.currentTime);
             controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB (${totalDb.toFixed(2)}dB with ReplayGain)`);
 
-            window.spectrumAnalyser.setVolume(analyserNode, totalDb);
         } else {
             controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB`);
         }
