@@ -70,10 +70,9 @@
                             foreach (var (track, index) in disc.Select((track, index) => (track, index)))
                             {
                                 var value = hasMultipleDiscs && index == 0 ? (disc.Key * 100) + index + 1 : (int?)null;
-                                <li value="@value">
+                                <li value="@value" data-src="@Url.Action("Track", new { path = track.Path })" data-gain="@track.Gain">
                                     <div class="track-artist">@track.Artist</div>
                                     <div class="track-title">@track.Title</div>
-                                    <audio preload="none" src="@Url.Action("Track", new { path = track.Path })" data-gain="@track.Gain"></audio>
                                 </li>
                             }
                         }

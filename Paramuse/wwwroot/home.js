@@ -7,113 +7,92 @@
     const minDb = -72;
     const maxDb = -21;
 
-    const barsSegments = Array.from(document.querySelectorAll('#player > .spectrum > div')).map(bar => Array.from(bar.children));
-    const barCount = barsSegments.length;
-    const segmentCount = barsSegments[0].length;
-    // FFT data is read as a byte representing dB, so this is how much of that byte each segment covers.
-    const perSegmentValue = 256 / segmentCount;
-    const barData = new Array(barCount).fill(0);
-    const binsPerBar = new Array(barCount);
-    const barMaxFreqs = barData.map((_, barIndex) => {
-        // Multiply the frequencies by 2 because the result needs to be the upper bound of the bar, and each bar is 1 octave.
-        const maxLogFreq = Math.log10(maxFreq * 2);
-        const minLogFreq = Math.log10(minFreq * 2);
-        const perBar = (maxLogFreq - minLogFreq) / barCount;
-        return Math.pow(10, (perBar * barIndex) + minLogFreq);
-    });
+    const create = (audioContext, container) => {
+        const barsSegments = Array.from(container.querySelectorAll(':scope > div')).map(bar => Array.from(bar.children));
+        const barCount = barsSegments.length;
+        const segmentCount = barsSegments[0].length;
+        // FFT data is read as a byte representing dB, so this is how much of that byte each segment covers.
+        const perSegmentValue = 256 / segmentCount;
+        const barData = new Array(barCount).fill(0);
+        const binsPerBar = new Array(barCount);
+        const barMaxFreqs = barData.map((_, barIndex) => {
+            // Multiply the frequencies by 2 because the result needs to be the upper bound of the bar, and each bar is 1 octave.
+            const maxLogFreq = Math.log10(maxFreq * 2);
+            const minLogFreq = Math.log10(minFreq * 2);
+            const perBar = (maxLogFreq - minLogFreq) / barCount;
+            return Math.pow(10, (perBar * barIndex) + minLogFreq);
+        });
 
-    const audioContext = new AudioContext();
-    const analyser = audioContext.createAnalyser();
+        const analyser = audioContext.createAnalyser();
+        // 512 (2^9) is the smallest value that will give at least one bin per bar (at a 44.1kHz sampling rate).
+        analyser.fftSize = Math.pow(2, 12);
+        analyser.minDecibels = minDb;
+        analyser.maxDecibels = maxDb;
+        // Make it move quite quickly, so it looks better with the peak hold (which is in the CSS).
+        analyser.smoothingTimeConstant = 0.4;
 
-    // 512 (2^9) is the smallest value that will give at least one bin per bar (at a 44.1kHz sampling rate).
-    analyser.fftSize = Math.pow(2, 12);
-    analyser.minDecibels = minDb;
-    analyser.maxDecibels = maxDb;
-    // Make it move quite quickly, so it looks better with the peak hold (which is in the CSS).
-    analyser.smoothingTimeConstant = 0.4;
-    analyser.connect(audioContext.destination);
+        const bufferLength = analyser.frequencyBinCount;
+        const rawData = new Uint8Array(bufferLength);
 
-    const bufferLength = analyser.frequencyBinCount;
-    const rawData = new Uint8Array(bufferLength);
+        const updatePeriodMilliseconds = 50;
+        let lastUpdateTimeStamp = 0;
+        const updateBars = (timeStamp) => {
+            window.requestAnimationFrame(updateBars);
 
-    const updatePeriodMilliseconds = 50;
-    let lastUpdateTimeStamp = 0;
-    const updateBars = (timeStamp) => {
-        window.requestAnimationFrame(updateBars);
-
-        if (timeStamp - lastUpdateTimeStamp < updatePeriodMilliseconds) {
-            // Try to keep a consistent update rate, as this affects the smoothing (in combination with smoothingTimeConstant).
-            // Also, there's no need to waste resources updating a zillion times a second on high-refresh-rate displays.
-            return;
-        } else {
-            lastUpdateTimeStamp = timeStamp;
-        }
-
-        analyser.getByteFrequencyData(rawData);
-
-        // The FFT data is spaced linearly with frequency. It has to be converted to log frequency to fit the octave-sized bars.
-        // Do this by summing every bin that is within the frequency range of each bar, and then averaging.
-        barData.fill(0);
-        binsPerBar.fill(0);
-        let currentBarIndex = 0;
-        rawData.forEach((rawValue, rawIndex) => {
-            const nyquistFreq = audioContext.sampleRate / 2;
-            const binFreq = nyquistFreq * (rawIndex / (bufferLength - 1));
-
-            if (binFreq < minFreq || binFreq > maxFreq) {
+            if (timeStamp - lastUpdateTimeStamp < updatePeriodMilliseconds) {
+                // Try to keep a consistent update rate, as this affects the smoothing (in combination with smoothingTimeConstant).
+                // Also, there's no need to waste resources updating a zillion times a second on high-refresh-rate displays.
                 return;
-            }
-
-            if (binFreq > barMaxFreqs[currentBarIndex]) {
-                currentBarIndex++;
-            }
-
-            barData[currentBarIndex] += rawValue;
-            binsPerBar[currentBarIndex]++;
-        });
-
-        for (let barIndex = 0; barIndex < barCount; barIndex++) {
-            barData[barIndex] /= binsPerBar[barIndex];
-        }
-
-        barsSegments.forEach((bar, barIndex) => {
-            bar.forEach((segment, segmentIndex) => {
-                const lit = barData[barIndex] > segmentIndex * perSegmentValue;
-                segment.classList.toggle('lit', lit);
-            });
-        });
-    };
-
-    updateBars();
-
-    // It's not possible to remove a source once added to an audio element, so store them all for reuse instead of creating a new one each time a track is played.
-    // See https://github.com/WebAudio/web-audio-api/issues/1202
-    const sources = new Map();
-    let currentSource = null;
-    window.spectrumAnalyser = {
-        setSource: audioElement => {
-            currentSource?.disconnect();
-
-            const existingSource = sources.get(audioElement);
-
-            if (existingSource) {
-                currentSource = existingSource;
             } else {
-                currentSource = audioContext.createMediaElementSource(audioElement);
-                sources.set(audioElement, currentSource);
+                lastUpdateTimeStamp = timeStamp;
             }
 
-            currentSource.connect(analyser);
-        },
-        setVolume: newVolumeDb => {
+            analyser.getByteFrequencyData(rawData);
+
+            // The FFT data is spaced linearly with frequency. It has to be converted to log frequency to fit the octave-sized bars.
+            // Do this by summing every bin that is within the frequency range of each bar, and then averaging.
+            barData.fill(0);
+            binsPerBar.fill(0);
+            let currentBarIndex = 0;
+            rawData.forEach((rawValue, rawIndex) => {
+                const nyquistFreq = audioContext.sampleRate / 2;
+                const binFreq = nyquistFreq * (rawIndex / (bufferLength - 1));
+
+                if (binFreq < minFreq || binFreq > maxFreq) {
+                    return;
+                }
+
+                if (binFreq > barMaxFreqs[currentBarIndex]) {
+                    currentBarIndex++;
+                }
+
+                barData[currentBarIndex] += rawValue;
+                binsPerBar[currentBarIndex]++;
+            });
+
+            for (let barIndex = 0; barIndex < barCount; barIndex++) {
+                barData[barIndex] /= binsPerBar[barIndex];
+            }
+
+            barsSegments.forEach((bar, barIndex) => {
+                bar.forEach((segment, segmentIndex) => {
+                    const lit = barData[barIndex] > segmentIndex * perSegmentValue;
+                    segment.classList.toggle('lit', lit);
+                });
+            });
+        };
+
+        updateBars();
+
+        return analyser;
+    }
+
+    window.spectrumAnalyser = {
+        create: create,
+        setVolume: (analyser, newVolumeDb) => {
             analyser.minDecibels = minDb + newVolumeDb;
             analyser.maxDecibels = maxDb + newVolumeDb;
         },
-        start: () => {
-            // Chromium doesn't allow an AudioContext to start unless triggered by user action,
-            // so call this at the same time as audio starts playing, otherwise it won't be routed.
-            audioContext.resume();
-        }
     };
 })();
 
@@ -135,8 +114,23 @@
         volume: player.querySelector('.volume input')
     };
 
-    let currentAudio = null;
-    let nextAudio = null;
+    const audioContext = new AudioContext();
+    const analyserContainer = document.querySelector('#player > .spectrum');
+    const analyserNode = window.spectrumAnalyser.create(audioContext, analyserContainer);
+ 
+    const currentAudio = document.createElement('audio');
+    const sourceNode = audioContext.createMediaElementSource(currentAudio);
+    const nextAudio = document.createElement('audio');
+
+    sourceNode.connect(analyserNode);
+    analyserNode.connect(audioContext.destination);
+
+    const getTrackContainer = audio => {
+        const src = audio.getAttribute('src');
+        const trackContainer = albumList.querySelector(`li[data-src="${src}"]`);
+
+        return trackContainer;
+    }
 
     const settings = {
         get: key => {
@@ -168,7 +162,8 @@
 
             const currentTrack = settings.get('CurrentTrack');
             if (currentTrack !== null) {
-                nextAudio = albumList.querySelector(`audio[src="${currentTrack}"]`);
+                const currentTrackContrainer = albumList.querySelector(`li[data-src="${currentTrack}"]`);
+                nextAudio.setAttribute('src', currentTrackContrainer.dataset.src);
                 advanceTrack(false);
             }
         }
@@ -187,12 +182,15 @@
 
         controls.time.innerHTML = `${formatTime(event.target.currentTime)}/${formatTime(event.target.duration)}`;
     };
+    currentAudio.addEventListener('timeupdate', updateTimeline);
 
     const setVolume = () => {
         const volumeDb = parseFloat(controls.volume.value);
+        const currentSrc = currentAudio.getAttribute('src');
 
-        if (currentAudio) {
-            const trackDb = parseFloat(currentAudio.dataset.gain);
+        if (currentSrc) {
+            const trackContainer = getTrackContainer(currentAudio);
+            const trackDb = parseFloat(trackContainer.dataset.gain);
             // The volume control allows >0dB to compensate for modern music having strongly negative ReplayGain values.
             // That means the overall volume can end up >0dB here, and needs to be clamped because audio elements don't allow it.
             const totalDb = Math.min(volumeDb + trackDb, 0);
@@ -201,7 +199,7 @@
             currentAudio.volume = volume;
             controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB (${totalDb.toFixed(2)}dB with ReplayGain)`);
 
-            window.spectrumAnalyser.setVolume(totalDb);
+            window.spectrumAnalyser.setVolume(analyserNode, totalDb);
         } else {
             controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB`);
         }
@@ -211,12 +209,12 @@
 
     // Preload the next track so it's ready to play when the current track ends.
     const cueNextTrack = (previous) => {
-        const currentTrackContainer = currentAudio?.closest('li');
+        const currentTrackContainer = getTrackContainer(currentAudio);
         const currentAlbumContainer = currentTrackContainer?.closest('details').closest('li');
 
         const nextTrackInAlbum = previous
-            ? currentTrackContainer?.previousElementSibling?.querySelector('audio')
-            : currentTrackContainer?.nextElementSibling?.querySelector('audio');
+            ? currentTrackContainer?.previousElementSibling
+            : currentTrackContainer?.nextElementSibling;
 
         const shuffle = controls.shuffle.previousElementSibling.checked;
         const allOtherAlbums = albumList.querySelectorAll('details:not(.playing)');
@@ -224,13 +222,14 @@
             ? allOtherAlbums.item(Math.random() * (allOtherAlbums.length - 1))
             : (previous ? currentAlbumContainer?.previousElementSibling ?? allOtherAlbums[allOtherAlbums.length - 1] : currentAlbumContainer?.nextElementSibling ?? allOtherAlbums[0]);
 
-        nextAudio = nextTrackInAlbum ?? nextAlbum.querySelector('audio');
-        nextAudio.setAttribute('preload', 'auto');
+        const nextSrc = (nextTrackInAlbum ?? nextAlbum.querySelector('li')).dataset.src;
+
+        nextAudio.setAttribute('src', nextSrc);
         nextAudio.load();
     };
 
     const setPlayingStatus = () => {
-        const isPlaying = currentAudio && !currentAudio.paused && !currentAudio.ended;
+        const isPlaying = !currentAudio.paused && !currentAudio.ended;
 
         player.classList.toggle('playing', isPlaying);
         controls.play.innerHTML = isPlaying ? '⏸&#xFE0E;' : '⏵&#xFE0E;';
@@ -240,7 +239,9 @@
 
     const playCurrent = () => {
         const play = () => {
-            window.spectrumAnalyser.start();
+            // AudioContext can't be started unless triggered by user action,
+            // so start the audio context at the same time as audio starts playing, otherwise it won't be routed.
+            audioContext.resume();
             currentAudio.play().catch(error => {
                 setPlayingStatus();
                 // TODO: Show the error?
@@ -264,34 +265,23 @@
         }
     };
 
+    const advanceAtEnd = () => advanceTrack(true); // Need to have this as its own variable so it can be both added and removed as an event listener.
     const advanceTrack = (play) => {
-        if (!nextAudio) {
+        const nextSrc = nextAudio.getAttribute('src');
+
+        if (!nextSrc) {
             console.log('No track cued.');
             return;
         }
 
-        albumList.querySelectorAll('audio').forEach(audio => {
-            if (audio !== nextAudio) {
-                audio.pause();
-                // Make sure any previously played audio stops loading.
-                // This should stop previous tracks from eating up loads of resources.
-                audio.setAttribute('preload', 'none');
-                audio.srcObject = null;
-            }
-        });
+        const currentAlbumContainer = getTrackContainer(currentAudio)?.closest('details').closest('li');
+        const nextAlbumContainer = getTrackContainer(nextAudio).closest('details').closest('li');
+        const isAlbumChange = currentAlbumContainer != nextAlbumContainer;
 
-        const isAlbumChange = currentAudio?.closest('details') !== nextAudio.closest('details');
-
-        // Audio events don't bubble, so event listeners must be added for every audio element.
-        // Remove the old ones so there aren't hundreds hanging around doing nothing.
-        currentAudio?.removeEventListener('timeupdate', updateTimeline);
-        nextAudio.addEventListener('timeupdate', updateTimeline);
-
-        currentAudio?.removeEventListener('ended', () => advanceTrack(true));
-        nextAudio.addEventListener('ended', () => advanceTrack(true), { once: true });
-
-        currentAudio = nextAudio;
-        nextAudio = null;
+        currentAudio.pause();
+        currentAudio.setAttribute('src', nextSrc);
+        currentAudio.removeEventListener('ended', advanceAtEnd);
+        currentAudio.addEventListener('ended', advanceAtEnd, { once: true });
 
         showCurrentlyPlaying();
         setVolume();
@@ -311,7 +301,7 @@
     };
 
     const showCurrentlyPlaying = () => {
-        const currentTrackContainer = currentAudio.closest('li');
+        const currentTrackContainer = getTrackContainer(currentAudio);
         const currentAlbumContainer = currentTrackContainer.closest('details').closest('li');
 
         albumList.querySelectorAll('.playing').forEach(element => element.classList.remove('playing'));
@@ -341,8 +331,6 @@
                 src: coverSrc
             }] : undefined
         });
-
-        window.spectrumAnalyser.setSource(currentAudio);
     };
 
     const scrollAlbumListToCurrent = () => {
@@ -365,7 +353,7 @@
             const albumContainer = event.target.closest('details');
             const trackContainer = albumContainer.querySelector('li');
 
-            nextAudio = trackContainer.querySelector('audio');
+            nextAudio.setAttribute('src', trackContainer.dataset.src)
             advanceTrack(true);
         }
     });
@@ -381,7 +369,7 @@
         if (player.classList.contains('playing')) {
             currentAudio.pause();
         } else {
-            if (currentAudio) {
+            if (currentAudio.getAttribute('src')) {
                 playCurrent();
             } else {
                 cueNextTrack();
