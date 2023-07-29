@@ -100,28 +100,66 @@
     const trackTitle = player.querySelector('.track-title');
     const albumCover = player.querySelector('.album-cover');
 
-    const controls = {
-        play: player.querySelector('.play'),
-        previous: player.querySelector('.previous'),
-        next: player.querySelector('.next'),
-        shuffle: player.querySelector('.shuffle'),
-        timeline: player.querySelector('.timeline > input'),
-        time: player.querySelector('.timeline > div'),
-        volume: player.querySelector('.volume input')
-    };
+    const controls = (() => {
+        const timeline = player.querySelector('.timeline > input');
+        const time = player.querySelector('.timeline > div');
+        const updateTimeline = event => {
+            const formatTime = totalSeconds => {
+                const minutes = Math.trunc(totalSeconds / 60);
+                const seconds = Math.trunc(totalSeconds - (minutes * 60));
 
-    const audioContext = new AudioContext();
-    const analyserContainer = document.querySelector('#player > .spectrum');
-    const analyserNode = window.spectrumAnalyser.create(audioContext, analyserContainer);
-    const gainNode = audioContext.createGain();
+                return `${minutes}:${('' + seconds).padStart(2, '0')}`;
+            };
 
-    const currentAudio = document.createElement('audio');
-    const sourceNode = audioContext.createMediaElementSource(currentAudio);
-    const nextAudio = document.createElement('audio');
+            timeline.max = event.target.duration;
+            timeline.value = event.target.currentTime;
 
-    sourceNode.connect(analyserNode);
-    analyserNode.connect(gainNode);
-    gainNode.connect(audioContext.destination);
+            time.innerHTML = `${formatTime(event.target.currentTime)}/${formatTime(event.target.duration)}`;
+        };
+
+        return {
+            play: player.querySelector('.play'),
+            previous: player.querySelector('.previous'),
+            next: player.querySelector('.next'),
+            shuffle: player.querySelector('.shuffle'),
+            timeline: timeline,
+            time: time,
+            volume: player.querySelector('.volume input'),
+            updateTimeline: updateTimeline
+        };
+    })();
+
+    const audioGraph = (() => {
+        const context = new AudioContext();
+        const analyserContainer = document.querySelector('#player > .spectrum');
+        const analyserNode = window.spectrumAnalyser.create(context, analyserContainer);
+        const gainNode = context.createGain();
+
+        const currentAudio = document.createElement('audio');
+        const sourceNode = context.createMediaElementSource(currentAudio);
+        const nextAudio = document.createElement('audio');
+
+        sourceNode.connect(analyserNode);
+        analyserNode.connect(gainNode);
+        gainNode.connect(context.destination);
+
+        currentAudio.addEventListener('timeupdate', controls.updateTimeline);
+
+        return {
+            currentAudio: currentAudio,
+            nextAudio: nextAudio,
+            play: () => {
+                // AudioContext can't be started unless triggered by user action,
+                // so start the audio context at the same time as audio starts playing, otherwise it won't be routed.
+                context.resume();
+                return currentAudio.play()
+            },
+            pause: () => currentAudio.pause(),
+            setGain: gain => {
+                gainNode.gain.setValueAtTime(gain, context.currentTime);
+            }
+        };
+    })();
 
     const getTrackContainer = audio => {
         const src = audio.getAttribute('src');
@@ -161,33 +199,18 @@
             const currentTrack = settings.get('CurrentTrack');
             if (currentTrack !== null) {
                 const currentTrackContrainer = albumList.querySelector(`li[data-src="${currentTrack}"]`);
-                nextAudio.setAttribute('src', currentTrackContrainer.dataset.src);
+                audioGraph.nextAudio.setAttribute('src', currentTrackContrainer.dataset.src);
                 advanceTrack(false);
             }
         }
     };
 
-    const updateTimeline = event => {
-        const formatTime = totalSeconds => {
-            const minutes = Math.trunc(totalSeconds / 60);
-            const seconds = Math.trunc(totalSeconds - (minutes * 60));
-
-            return `${minutes}:${('' + seconds).padStart(2, '0')}`;
-        };
-
-        controls.timeline.max = event.target.duration;
-        controls.timeline.value = event.target.currentTime;
-
-        controls.time.innerHTML = `${formatTime(event.target.currentTime)}/${formatTime(event.target.duration)}`;
-    };
-    currentAudio.addEventListener('timeupdate', updateTimeline);
-
     const setVolume = () => {
         const volumeDb = parseFloat(controls.volume.value);
-        const currentSrc = currentAudio.getAttribute('src');
+        const currentSrc = audioGraph.currentAudio.getAttribute('src');
 
         if (currentSrc) {
-            const trackContainer = getTrackContainer(currentAudio);
+            const trackContainer = getTrackContainer(audioGraph.currentAudio);
             const trackDb = parseFloat(trackContainer.dataset.gain);
             const trackPeak = parseFloat(trackContainer.dataset.peak);
             // The volume control allows >0dB to compensate for modern music having strongly negative ReplayGain values.
@@ -196,7 +219,7 @@
             const totalDb = Math.min(volumeDb + trackDb, maxGain);
             const volume = Math.pow(10, totalDb / 20);
 
-            gainNode.gain.setValueAtTime(volume, gainNode.context.currentTime);
+            audioGraph.setGain(volume);
             controls.volume.setAttribute('title', `${Math.round(volumeDb)}dB (${totalDb.toFixed(2)}dB with ReplayGain)`);
 
         } else {
@@ -208,7 +231,7 @@
 
     // Preload the next track so it's ready to play when the current track ends.
     const cueNextTrack = (previous) => {
-        const currentTrackContainer = getTrackContainer(currentAudio);
+        const currentTrackContainer = getTrackContainer(audioGraph.currentAudio);
         const currentAlbumContainer = currentTrackContainer?.closest('details').closest('li');
 
         const nextTrackInAlbum = previous
@@ -223,12 +246,12 @@
 
         const nextSrc = (nextTrackInAlbum ?? nextAlbum.querySelector('li')).dataset.src;
 
-        nextAudio.setAttribute('src', nextSrc);
-        nextAudio.load();
+        audioGraph.nextAudio.setAttribute('src', nextSrc);
+        audioGraph.nextAudio.load();
     };
 
     const setPlayingStatus = () => {
-        const isPlaying = !currentAudio.paused && !currentAudio.ended;
+        const isPlaying = !audioGraph.currentAudio.paused && !audioGraph.currentAudio.ended;
 
         player.classList.toggle('playing', isPlaying);
         controls.play.innerHTML = isPlaying ? '⏸&#xFE0E;' : '⏵&#xFE0E;';
@@ -238,49 +261,46 @@
 
     const playCurrent = () => {
         const play = () => {
-            // AudioContext can't be started unless triggered by user action,
-            // so start the audio context at the same time as audio starts playing, otherwise it won't be routed.
-            audioContext.resume();
-            currentAudio.play().catch(error => {
+            audioGraph.play().catch(error => {
                 setPlayingStatus();
                 // TODO: Show the error?
                 console.log('Error thrown when trying to play audio.');
             });
         };
 
-        currentAudio.removeEventListener('play', setPlayingStatus);
-        currentAudio.removeEventListener('pause', setPlayingStatus);
-        currentAudio.removeEventListener('ended', setPlayingStatus);
+        audioGraph.currentAudio.removeEventListener('play', setPlayingStatus);
+        audioGraph.currentAudio.removeEventListener('pause', setPlayingStatus);
+        audioGraph.currentAudio.removeEventListener('ended', setPlayingStatus);
 
-        currentAudio.addEventListener('play', setPlayingStatus, { once: true });
-        currentAudio.addEventListener('pause', setPlayingStatus, { once: true });
-        currentAudio.addEventListener('ended', setPlayingStatus, { once: true });
+        audioGraph.currentAudio.addEventListener('play', setPlayingStatus, { once: true });
+        audioGraph.currentAudio.addEventListener('pause', setPlayingStatus, { once: true });
+        audioGraph.currentAudio.addEventListener('ended', setPlayingStatus, { once: true });
 
-        if (currentAudio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        if (audioGraph.currentAudio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
             play();
         } else {
-            currentAudio.addEventListener('loadeddata', play, { once: true });
-            currentAudio.load();
+            audioGraph.currentAudio.addEventListener('loadeddata', play, { once: true });
+            audioGraph.currentAudio.load();
         }
     };
 
     const advanceAtEnd = () => advanceTrack(true); // Need to have this as its own variable so it can be both added and removed as an event listener.
     const advanceTrack = (play) => {
-        const nextSrc = nextAudio.getAttribute('src');
+        const nextSrc = audioGraph.nextAudio.getAttribute('src');
 
         if (!nextSrc) {
             console.log('No track cued.');
             return;
         }
 
-        const currentAlbumContainer = getTrackContainer(currentAudio)?.closest('details').closest('li');
-        const nextAlbumContainer = getTrackContainer(nextAudio).closest('details').closest('li');
+        const currentAlbumContainer = getTrackContainer(audioGraph.currentAudio)?.closest('details').closest('li');
+        const nextAlbumContainer = getTrackContainer(audioGraph.nextAudio).closest('details').closest('li');
         const isAlbumChange = currentAlbumContainer != nextAlbumContainer;
 
-        currentAudio.pause();
-        currentAudio.setAttribute('src', nextSrc);
-        currentAudio.removeEventListener('ended', advanceAtEnd);
-        currentAudio.addEventListener('ended', advanceAtEnd, { once: true });
+        audioGraph.pause();
+        audioGraph.currentAudio.setAttribute('src', nextSrc);
+        audioGraph.currentAudio.removeEventListener('ended', advanceAtEnd);
+        audioGraph.currentAudio.addEventListener('ended', advanceAtEnd, { once: true });
 
         showCurrentlyPlaying();
         setVolume();
@@ -296,11 +316,11 @@
             scrollAlbumListToCurrent();
         }
 
-        settings.set('CurrentTrack', currentAudio.getAttribute('src'));
+        settings.set('CurrentTrack', audioGraph.currentAudio.getAttribute('src'));
     };
 
     const showCurrentlyPlaying = () => {
-        const currentTrackContainer = getTrackContainer(currentAudio);
+        const currentTrackContainer = getTrackContainer(audioGraph.currentAudio);
         const currentAlbumContainer = currentTrackContainer.closest('details').closest('li');
 
         albumList.querySelectorAll('.playing').forEach(element => element.classList.remove('playing'));
@@ -352,7 +372,7 @@
             const albumContainer = event.target.closest('details');
             const trackContainer = albumContainer.querySelector('li');
 
-            nextAudio.setAttribute('src', trackContainer.dataset.src)
+            audioGraph.nextAudio.setAttribute('src', trackContainer.dataset.src)
             advanceTrack(true);
         }
     });
@@ -366,9 +386,9 @@
 
     const handlePlay = () => {
         if (player.classList.contains('playing')) {
-            currentAudio.pause();
+            audioGraph.pause();
         } else {
-            if (currentAudio.getAttribute('src')) {
+            if (audioGraph.currentAudio.getAttribute('src')) {
                 playCurrent();
             } else {
                 cueNextTrack();
@@ -378,8 +398,8 @@
     };
     controls.play.addEventListener('click', handlePlay);
     navigator.mediaSession.setActionHandler('play', handlePlay);
-    navigator.mediaSession.setActionHandler('pause', () => currentAudio?.pause());
-    navigator.mediaSession.setActionHandler('stop', () => currentAudio?.pause());
+    navigator.mediaSession.setActionHandler('pause', () => audioGraph.pause());
+    navigator.mediaSession.setActionHandler('stop', () => audioGraph.pause());
 
     const handlePreviousTrack = () => {
         cueNextTrack(true);
@@ -389,7 +409,7 @@
     navigator.mediaSession.setActionHandler('previoustrack', handlePreviousTrack);
 
     const handleNextTrack = () => {
-        if (!nextAudio) {
+        if (!audioGraph.nextAudio) {
             cueNextTrack();
         }
 
@@ -399,7 +419,7 @@
     navigator.mediaSession.setActionHandler('nexttrack', handleNextTrack);
 
     controls.timeline.addEventListener('input', event => {
-        currentAudio.currentTime = event.target.value;
+        audioGraph.currentAudio.currentTime = event.target.value;
     });
 
     controls.volume.addEventListener('input', setVolume);
