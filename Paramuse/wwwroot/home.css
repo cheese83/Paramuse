@@ -32,25 +32,41 @@ body {
 }
 
 button {
+    --light-color: #770;
     width: 2em;
     height: 2em;
     background: black;
-    color: #AA0;
+    color: var(--light-color);
     border-radius: 0.5em;
     border-style: solid;
-    border-color: #550;
+    border-color: var(--light-color);
     font-size: 1.5em;
     font-weight: bold;
     font-family: "Symbola";
 }
 
     button:hover {
-        color: #FF9;
-        text-shadow: 0 0 0.5em #FF0, 0 0 1.5em #FF0;
-        box-shadow: 0 0 0.5em #FF0;
+        --light-color: #FF0;
+        text-shadow: 0 0 0.5em var(--light-color), 0 0 1.5em var(--light-color);
+        box-shadow: 0 0 0.5em var(--light-color);
         background: #110;
-        border-color: #AA0;
     }
+
+    button.tag-missing {
+        --light-color: #A24;
+    }
+
+        button.tag-missing:hover {
+            --light-color: #F59;
+        }
+
+    button.tag-mixed {
+        --light-color: #277;
+    }
+
+        button.tag-mixed:hover {
+            --light-color: #7FF;
+        }
 
 .album-cover {
     color: #555;
@@ -102,7 +118,7 @@ button {
         text-decoration: none;
     }
 
-    #player > :is(.album-title, .track-artist, .track-title) {
+    #player > :is(.track-album, .track-artist, .track-title) {
         grid-column: 2;
         white-space: nowrap;
         overflow: hidden;
@@ -111,7 +127,7 @@ button {
         text-shadow: 0 0 0.2em black; /* Give the text a little contrast against the bright spectrum analyser. */
     }
 
-    #player > .album-title {
+    #player > .track-album {
         grid-row: 1;
     }
 
@@ -280,9 +296,17 @@ button {
             grid-column: 3;
         }
 
-    #album-list .track-artist {
+    #album-list :is(.track-album, .track-artist) {
         display: none;
     }
+
+div.tag-missing, li.tag-missing::marker {
+    color: #F99;
+}
+
+div.tag-mixed, li.tag-mixed::marker {
+    color: #9FF;
+}
 
 @media (max-width: 40rem) {
     #player > .controls {

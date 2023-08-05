@@ -7,7 +7,7 @@
 
 <div id="player">
     <div class="track-artist"></div>
-    <div class="album-title"></div>
+    <div class="track-album"></div>
     <div class="track-title"></div>
     <div class="spectrum">
         @for (int bar = 0; bar < 10; bar++)
@@ -45,11 +45,25 @@
     @{ var albumIndex = 0; }
     @foreach (var album in Model)
     {
+        static string? tagStateClass(TagState tagState) => tagState switch
+        {
+            TagState.Missing => "tag-missing",
+            TagState.Mixed => "tag-mixed",
+            TagState.Consistent => null,
+            _ => throw new ArgumentOutOfRangeException(nameof(tagState), $"Missing case for {tagState}")
+        };
+        static string? tagStateTitle(TagState tagState, string tagName) => tagState switch
+        {
+            TagState.Missing => $"This album has missing {tagName} tags",
+            TagState.Mixed => $"This album has inconsistent {tagName} tags",
+            TagState.Consistent => null,
+            _ => throw new ArgumentOutOfRangeException(nameof(tagState), $"Missing case for {tagState}")
+        };
         <li id="album-@(albumIndex++)">
             <details>
                 <summary>
-                    <div class="album-artist">@album.Artist</div>
-                    <div class="album-title">@album.Name</div>
+                    <div class="album-artist @tagStateClass(album.ArtistTagState)" title="@tagStateTitle(album.ArtistTagState, "artist name")">@album.Artist</div>
+                    <div class="album-title @tagStateClass(album.NameTagState)" title="@tagStateTitle(album.NameTagState, "album title")">@album.Name</div>
                     @if (album.CoverPath != "")
                     {
                         <img class="album-cover" src="@Url.Action("Cover", new { path = album.CoverPath })" loading="lazy">
@@ -58,7 +72,7 @@
                     {
                         <div class="album-cover">?</div>
                     }
-                    <button>⏵</button>
+                    <button class="@tagStateClass(album.ReplayGainTagState)" title="@tagStateTitle(album.ReplayGainTagState, "ReplayGain")">⏵</button>
                 </summary>
                 <ol>
                     @{
@@ -69,10 +83,17 @@
                         {
                             foreach (var (track, index) in disc.Select((track, index) => (track, index)))
                             {
-                                var value = hasMultipleDiscs && index == 0 ? (disc.Key * 100) + index + 1 : (int?)null;
-                                <li value="@value" data-src="@Url.Action("Track", new { path = track.Path })" data-gain="@track.Gain" data-peak="@track.Peak">
-                                    <div class="track-artist">@track.Artist</div>
-                                    <div class="track-title">@track.Title</div>
+                                var inconsistentTrackNo = track.TrackNo != (index + 1);
+                                var specifyTrackNo = inconsistentTrackNo || (hasMultipleDiscs && index == 0);
+                                var value = specifyTrackNo ? hasMultipleDiscs ? (disc.Key * 100) + track.TrackNo : track.TrackNo : (int?)null;
+                                // This should really be worked out in the Tag constructor, but the actual track index isn't known at that point.
+                                var trackNoTagState = track.TrackNoTagState == TagState.Missing ? TagState.Missing :
+                                    inconsistentTrackNo ? TagState.Mixed :
+                                    track.TrackNoTagState;
+                                <li class="@(tagStateClass(trackNoTagState))" title="@tagStateTitle(trackNoTagState, "track no.")" value="@value" data-src="@Url.Action("Track", new { path = track.Path })" data-gain="@track.Gain" data-peak="@track.Peak">
+                                    <div class="track-album @tagStateClass(track.AlbumTagState)">@track.Album</div>
+                                    <div class="track-artist @tagStateClass(track.ArtistTagState)">@track.Artist</div>
+                                    <div class="track-title @tagStateClass(track.TitleTagState)">@track.Title</div>
                                 </li>
                             }
                         }

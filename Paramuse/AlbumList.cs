@@ -4,12 +4,22 @@ using TagLib;
 
 namespace Paramuse.Models
 {
+    public enum TagState
+    {
+        Missing,
+        Mixed, // e.g. compilation where tracks may all have different artists.
+        Consistent
+    }
+
     public record Album
     (
         string Artist,
         string Name,
         IImmutableList<Track> Tracks,
-        string CoverPath
+        string CoverPath,
+        TagState ArtistTagState,
+        TagState NameTagState,
+        TagState ReplayGainTagState
     );
 
     public record Track
@@ -22,24 +32,34 @@ namespace Paramuse.Models
         double Gain,
         double Peak,
         bool HasCover,
+        TagState ArtistTagState,
+        TagState AlbumTagState,
+        TagState TitleTagState,
+        TagState TrackNoTagState,
+        TagState ReplayGainTagState,
         string Path
     )
     {
         public Track(Tag tag, string path) : this
         (
-            Artist: tag.JoinedPerformers ?? tag.JoinedAlbumArtists ?? "",
-            Album: tag.Album ?? "",
+            Artist: tag.JoinedPerformers ?? tag.JoinedAlbumArtists ?? "?",
+            Album: tag.Album ?? "?",
             Title: tag.Title ?? System.IO.Path.GetFileName(path),
             TrackNo: (int)tag.Track,
             DiscNo: (int)tag.Disc,
-            // Assume that if there are any pictures at all, one of them is suitable for use as a cover.
-            HasCover: tag.Pictures.Any(picture => FileTypeHelpers.IsSupportedImageMimeType(picture.MimeType)),
             Gain: !double.IsNaN(tag.ReplayGainAlbumGain) ? tag.ReplayGainAlbumGain
                 : !double.IsNaN(tag.ReplayGainTrackGain) ? tag.ReplayGainTrackGain
                 : 0,
             Peak: !double.IsNaN(tag.ReplayGainAlbumPeak) ? tag.ReplayGainAlbumPeak
                 : !double.IsNaN(tag.ReplayGainTrackPeak) ? tag.ReplayGainTrackPeak
                 : 1,
+            // Assume that if there are any pictures at all, one of them is suitable for use as a cover.
+            HasCover: tag.Pictures.Any(picture => FileTypeHelpers.IsSupportedImageMimeType(picture.MimeType)),
+            ArtistTagState: string.IsNullOrWhiteSpace(tag.JoinedPerformers ?? tag.JoinedAlbumArtists) ? TagState.Missing : TagState.Consistent,
+            AlbumTagState: string.IsNullOrWhiteSpace(tag.Album) ? TagState.Missing : TagState.Consistent,
+            TitleTagState: string.IsNullOrWhiteSpace(tag.Title) ? TagState.Missing : TagState.Consistent,
+            TrackNoTagState: tag.Track == 0 ? TagState.Missing : TagState.Consistent,
+            ReplayGainTagState: double.IsNaN(tag.ReplayGainAlbumGain) && double.IsNaN(tag.ReplayGainTrackGain) ? TagState.Missing : TagState.Consistent,
             Path: path
         )
         { }
@@ -54,11 +74,6 @@ namespace Paramuse.Models
 
         public AlbumList(string basePath)
         {
-            static string coalesceNullOrWhiteSpace(params string?[] strings) => strings
-                .Select(s => string.IsNullOrWhiteSpace(s) ? null : s)
-                .Where(s => s is not null)
-                .FirstOrDefault() ?? "";
-
             var dirs = Directory.EnumerateDirectories(basePath, "*", new EnumerationOptions { RecurseSubdirectories = true });
             var albumDirs = dirs
                 .Where(dir => Directory.EnumerateFiles(dir).Any(FileTypeHelpers.IsSupportedAudioFile))
@@ -86,10 +101,19 @@ namespace Paramuse.Models
                             .ThenBy(file => new FileInfo(file).Length) // Assume that smaller files are likely to be thumbnails - huge multi-MB scans are not a good choice.
                             .Select(file => Path.GetRelativePath(basePath, file))
                             .FirstOrDefault() ?? "";
-                    var artist = coalesceNullOrWhiteSpace(tracks.Select(track => track.Artist).Distinct().Count() == 1 ? tracks.First().Artist : null, Directory.GetParent(dir)?.Name, "[Unknown]");
-                    var title = coalesceNullOrWhiteSpace(tracks.Select(track => track.Album).Distinct().Count() == 1 ? tracks.First().Album : null, new DirectoryInfo(dir).Name, "[Unknown]");
+                    var artistTagState = tracks.Any(track => track.ArtistTagState == TagState.Missing) ? TagState.Missing :
+                        tracks.Select(track => track.Artist).Distinct().Count() > 1 ? TagState.Mixed :
+                        TagState.Consistent;
+                    var titleTagState = tracks.Any(track => track.TitleTagState == TagState.Missing) ? TagState.Missing :
+                        tracks.Select(track => track.Album).Distinct().Count() > 1 ? TagState.Mixed :
+                        TagState.Consistent;
+                    var replayGainTagState = tracks.Any(track => track.ReplayGainTagState == TagState.Missing) ? TagState.Missing :
+                        tracks.Select(track => track.Gain).Distinct().Count() > 1 ? TagState.Mixed :
+                        TagState.Consistent;
+                    var artist = artistTagState == TagState.Consistent ? tracks.First().Artist : Directory.GetParent(dir)?.Name ?? "?";
+                    var title = titleTagState == TagState.Consistent ? tracks.First().Album : new DirectoryInfo(dir).Name;
 
-                    return new Album(artist, title, tracks, coverPath);
+                    return new Album(artist, title, tracks, coverPath, artistTagState, titleTagState, replayGainTagState);
                 })
                 .OrderBy(album => album.Artist).ThenBy(album => album.Name)
                 .ToImmutableList();

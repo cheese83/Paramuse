@@ -96,7 +96,7 @@
     const albumList = document.getElementById('album-list');
     const player = document.querySelector('#player');
     const trackArtist = player.querySelector('.track-artist');
-    const albumTitle = player.querySelector('.album-title');
+    const albumTitle = player.querySelector('.track-album');
     const trackTitle = player.querySelector('.track-title');
     const albumCover = player.querySelector('.album-cover');
 
@@ -320,6 +320,19 @@
     };
 
     const showCurrentlyPlaying = () => {
+        const replaceTagClasses = (dest, source) => {
+            dest.classList.forEach(value => {
+                if (value.startsWith('tag-')) {
+                    dest.classList.remove(value);
+                }
+            });
+            source.classList.forEach(value => {
+                if (value.startsWith('tag-')) {
+                    dest.classList.add(value);
+                }
+            });
+        }
+
         const currentTrackContainer = getTrackContainer(audioGraph.currentAudio);
         const currentAlbumContainer = currentTrackContainer.closest('details').closest('li');
 
@@ -327,9 +340,18 @@
         currentTrackContainer.classList.add('playing');
         currentAlbumContainer.querySelector('details').classList.add('playing');
 
-        albumTitle.innerHTML = currentAlbumContainer.querySelector('.album-title').innerHTML;
-        trackArtist.innerHTML = currentTrackContainer.querySelector('.track-artist').innerHTML || currentAlbumContainer.querySelector('.album-artist').innerHTML;
-        trackTitle.innerHTML = currentTrackContainer.querySelector('.track-title').innerHTML;
+        const currentAlbumTitle = currentAlbumContainer.querySelector('.album-title');
+        const currentAlbumArtist = currentAlbumContainer.querySelector('.album-artist');
+        const currentTrackTitle = currentTrackContainer.querySelector('.track-title');
+        const currentTrackArtist = currentTrackContainer.querySelector('.track-artist');
+        const currentTrackAlbum = currentTrackContainer.querySelector('.track-album');
+
+        albumTitle.innerHTML = currentTrackAlbum.innerHTML || currentAlbumTitle.innerHTML;
+        replaceTagClasses(albumTitle, currentAlbumTitle);
+        trackArtist.innerHTML = currentTrackArtist.innerHTML || currentAlbumArtist.innerHTML;
+        replaceTagClasses(trackArtist, currentAlbumArtist);
+        trackTitle.innerHTML = currentTrackTitle.innerHTML;
+        replaceTagClasses(trackTitle, currentTrackTitle);
 
         albumTitle.setAttribute('title', albumTitle.textContent);
         trackArtist.setAttribute('title', trackArtist.textContent);
