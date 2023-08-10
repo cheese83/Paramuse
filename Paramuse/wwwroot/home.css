@@ -19,9 +19,14 @@
     }
 }
 
+:root {
+    --background: black;
+    --foreground: white;
+}
+
 html {
-    background: black;
-    color: white;
+    background: var(--background);
+    color: var(--foreground);
     font-family: "Ink Free";
 }
 
@@ -32,40 +37,46 @@ body {
 }
 
 button {
-    --light-color: #770;
+    --light-color: 119, 119, 0;
+    --symbol-color: var(--light-color);
+    position: relative;
     width: 2em;
     height: 2em;
-    background: black;
-    color: var(--light-color);
+    background: var(--background);
+    color: rgb(var(--symbol-color));
+    border: 0.1em solid rgb(var(--light-color));
     border-radius: 0.5em;
-    border-style: solid;
-    border-color: var(--light-color);
-    font-size: 1.5em;
-    font-weight: bold;
-    font-family: "Symbola";
+    font: bold 1.5em "Symbola";
 }
 
     button:hover {
-        --light-color: #FF0;
-        text-shadow: 0 0 0.5em var(--light-color), 0 0 1.5em var(--light-color);
-        box-shadow: 0 0 0.5em var(--light-color);
-        background: #110;
+        --light-color: 255, 255, 0;
+        text-shadow: 0 0 0.5em rgb(var(--symbol-color)), 0 0 1.5em rgb(var(--symbol-color));
+        box-shadow: 0 0 0.5em rgb(var(--light-color));
     }
 
+        button:hover::before {
+            content: "";
+            display: block;
+            background: rgb(var(--symbol-color), 0.1);
+            position: absolute;
+            inset: 0;
+        }
+
     button.tag-missing {
-        --light-color: #A24;
+        --light-color: 170, 34, 68;
     }
 
         button.tag-missing:hover {
-            --light-color: #F59;
+            --light-color: 255, 85, 153;
         }
 
     button.tag-mixed {
-        --light-color: #277;
+        --light-color: 34, 119, 119;
     }
 
         button.tag-mixed:hover {
-            --light-color: #7FF;
+            --light-color: 119, 255, 255;
         }
 
 .album-cover {
@@ -73,16 +84,20 @@ button {
 }
 
 #player, #album-list {
+    --neon-off: 200, 34, 119;
+    /* It's not yet possible to programatically change brightness and saturation in CSS, so specify multiple colours. */
+    --neon-on: 255, 187, 221;
+    --neon-glow: 255, 10, 123, 0.7;
+    --glow-size: 4em;
     margin: min(2vh, 1em) clamp(0.4em, 2vw, 1em);
-    border-style: solid;
+    border: 0.2em solid rgb(var(--neon-off));
     border-radius: 1em;
-    border-color: #A27;
 }
 
 #player {
-    overflow: hidden;
     position: sticky;
     top: min(2vh, 1em);
+    z-index: 1;
     display: grid;
     grid-template-columns: clamp(4.5em, min(18vh, 18vw), 12em) 1fr;
     grid-template-rows: repeat(3, clamp(1.5em, min(6vh, 6vw), 4em)) 1fr;
@@ -91,14 +106,26 @@ button {
     padding-top: clamp(0.5em, 2vh, 0.8em);
     padding-left: clamp(0.6em, min(3vh, 2vw), 1em);
     padding-right: clamp(0.6em, min(3vh, 2vw), 1em);
-    background: black;
-    box-shadow: 0 0.5em 1em black, 0 -2em 0 black;
+    background: var(--background);
+    box-shadow: 0 0.5em 1em black, 0 -3em 2em 3em var(--background);
 }
 
-    #player.playing {
-        border-color: #FBD;
-        box-shadow: 0 0 0.5em #FAC, 0 0 2em #C05, 0 0 4em #803, inset 0 0 0.5em #FAC, inset 0 0 2em #C05, inset 0 0 4em #803, 0 -2em 0 black;
-        background: #100A0C;
+    #player.playing::after, #album-list details.playing::after {
+        content: "";
+        position: absolute;
+        inset: -0.2em;
+        z-index: -1;
+        border: inherit;
+        border-radius: inherit;
+        border-color: rgb(var(--neon-on));
+        box-shadow: 0 0 calc(var(--glow-size) / 8) rgb(var(--neon-on)),
+            0 0 calc(var(--glow-size) / 2) rgb(var(--neon-glow)),
+            0 0 var(--glow-size) rgb(var(--neon-glow)),
+            inset 0 0 calc(var(--glow-size) / 8) rgb(var(--neon-on)),
+            inset 0 0 calc(var(--glow-size) / 2) rgb(var(--neon-glow)),
+            inset 0 0 var(--glow-size) rgb(var(--neon-glow));
+        background: rgb(var(--neon-off), 0.1);
+        filter: blur(0.05em);
     }
 
     #player > .album-cover {
@@ -159,22 +186,21 @@ button {
         }
 
             #player > .spectrum > div > div {
+                --segment-color: 85, 238, 0;
                 height: 100%;
                 width: 100%;
                 border-radius: 10%;
-                background: radial-gradient(#5E2 30%, #5E29);
-                box-shadow: 0 0 1em 0.2em #0F0A;
+                background: radial-gradient(rgb(var(--segment-color)) 30%, rgb(var(--segment-color), 0.6));
+                box-shadow: 0 0 1em 0.2em rgb(var(--segment-color), 0.7);
                 opacity: 0;
             }
 
                 #player > .spectrum > div > div:nth-last-child(-n+3) {
-                    background: radial-gradient(#FD2 30%, #FD29);
-                    box-shadow: 0 0 0.8em 0.2em #FD28;
+                    --segment-color: 255, 221, 0;
                 }
 
                 #player > .spectrum > div > div:last-child {
-                    background: radial-gradient(#F20 40%, #F209);
-                    box-shadow: 0 0 0.7em 0.2em #F008;
+                    --segment-color: 255, 34, 0;
                 }
 
                 #player > .spectrum > div > div.lit {
@@ -204,9 +230,8 @@ button {
         }
 
             #player > .controls > label > input:checked + button {
-                color: #7F7;
-                text-shadow: 0 0 0.5em #2F2, 0 0 1.5em #2F2;
-                background: #010;
+                --symbol-color: 119, 255, 119;
+                text-shadow: 0 0 0.5em rgb(var(--symbol-color)), 0 0 1.5em rgb(var(--symbol-color));
             }
 
         #player > .controls > .timeline {
@@ -237,14 +262,21 @@ button {
 #album-list {
     list-style: none;
     padding: 0;
+    position: relative;
+    z-index: 0;
 }
 
     #album-list details {
+        --neon-off: 0, 119, 119;
+        --neon-on: 100, 255, 255;
+        --neon-glow: 0, 215, 255, 0.4;
+        --glow-size: 2.5em;
+        position: relative;
+        z-index: 1;
         margin: 0.5em;
         padding: 0.5em 1.5em;
-        border-style: solid;
+        border: 0.2em solid rgb(var(--neon-off));
         border-radius: 1em;
-        border-color: #077;
     }
 
         #album-list details ol {
@@ -252,16 +284,10 @@ button {
             margin-top: 0.5em;
         }
 
-        #album-list details.playing {
-            border-color: #0FF;
-            box-shadow: 0 0 0.5em #0FF, 0 0 2em #099, 0 0 4em #033, inset 0 0 0.5em #0FF, inset 0 0 2em #099, inset 0 0 4em #033;
-            background: #000505;
+        #album-list details.playing li.playing {
+            text-shadow: 0 0 0.2em #5F5, 0 0 0.5em #3F3;
+            color: #9F9;
         }
-
-            #album-list details.playing li.playing {
-                text-shadow: 0 0 0.2em #5F5, 0 0 0.5em #3F3;
-                color: #9F9;
-            }
 
     #album-list summary {
         list-style: none;
