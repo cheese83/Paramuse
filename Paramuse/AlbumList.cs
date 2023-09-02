@@ -65,15 +65,96 @@ namespace Paramuse.Models
         { }
     }
 
-    public class AlbumList
+    public sealed class AlbumList : IDisposable
     {
-        private readonly IImmutableSet<string> _coverNames = ImmutableHashSet.Create<string>("cover", "folder", "front");
+        private static readonly IImmutableSet<string> _coverNames = ImmutableHashSet.Create<string>("cover", "folder", "front");
+
+        private static readonly TimeSpan _reloadDelay = TimeSpan.FromSeconds(7);
+        private readonly FileSystemWatcher _watcher;
+        private readonly System.Timers.Timer _reloadTimer;
+        private readonly object _reloadLock = new();
+        private readonly object _timerLock = new();
 
         public readonly string BasePath;
-        public readonly IImmutableList<Album> Albums;
+        public IImmutableList<Album> Albums { get; private set; }
 
-        public AlbumList(string basePath)
+        public AlbumList(string basePath, ILogger<AlbumList> logger)
         {
+            BasePath = basePath;
+            Albums = LoadAlbums(BasePath, logger);
+
+            void restartTimer()
+            {
+                lock (_timerLock)
+                {
+                    _reloadTimer.Stop();
+                    _reloadTimer.Start();
+                }
+            }
+
+            _reloadTimer = new(_reloadDelay.TotalMilliseconds)
+            {
+                AutoReset = false
+            };
+            _reloadTimer.Elapsed += (sender, e) =>
+            {
+                if (Monitor.TryEnter(_reloadLock))
+                {
+                    try
+                    {
+                        Albums = LoadAlbums(BasePath, logger);
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.LogError(ex, "Error occurred while trying to load album list. Retrying...");
+                        restartTimer();
+                    }
+                    finally
+                    {
+                        Monitor.Exit(_reloadLock);
+                    }
+                }
+                else
+                {
+                    // If the album list is still being loaded, go back to waiting.
+                    // This will prevent too many reloads from being queued up in response to multiple file system changes over a long time period.
+                    // TODO: Could use a CancellationToken to interrupt loading instead, since the result is going to be discarded shortly anyway.
+                    restartTimer();
+                }
+            };
+
+            _watcher = new FileSystemWatcher(BasePath)
+            {
+                NotifyFilter = NotifyFilters.FileName
+                    | NotifyFilters.DirectoryName
+                    | NotifyFilters.Size
+                    // Something causes LastWrite to fire when a new file is first read, even if it's just opening the containing folder in Explorer.
+                    // The other filters seem to catch every relevant file change, so just ignore LastWrite.
+                    //| NotifyFilters.LastWrite
+                    | NotifyFilters.CreationTime,
+                IncludeSubdirectories = true,
+                EnableRaisingEvents = true
+                // Can't add a filter by file extension because changes may not be to a file,
+                // e.g. deleting a directory triggers an event for that directory only, not to the files it contains.
+            };
+
+            void reloadAfterDelay(object sender, FileSystemEventArgs e)
+            {
+                logger.LogInformation("File system {ChangeType} event. Waiting for further changes...", e.ChangeType);
+                restartTimer();
+            }
+
+            _watcher.Changed += reloadAfterDelay;
+            _watcher.Created += reloadAfterDelay;
+            _watcher.Deleted += reloadAfterDelay;
+            _watcher.Renamed += reloadAfterDelay;
+        }
+
+        private static IImmutableList<Album> LoadAlbums(string basePath, ILogger<AlbumList> logger)
+        {
+            logger.LogInformation("Loading album list.");
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+
             var dirs = Directory.EnumerateDirectories(basePath, "*", new EnumerationOptions { RecurseSubdirectories = true });
             var albumDirs = dirs
                 .Where(dir => Directory.EnumerateFiles(dir).Any(FileTypeHelpers.IsSupportedAudioFile))
@@ -118,28 +199,30 @@ namespace Paramuse.Models
                 .OrderBy(album => album.Artist).ThenBy(album => album.Name)
                 .ToImmutableList();
 
-            BasePath = basePath;
-            Albums = albums;
+            sw.Stop();
+            logger.LogInformation("Loaded album list in {TotalSeconds}s", Math.Round(sw.Elapsed.TotalSeconds, 2));
+
+            return albums;
+        }
+
+        public void Dispose()
+        {
+            _watcher.Dispose();
+            _reloadTimer.Dispose();
         }
 
         public class LoaderService : BackgroundService
         {
             private readonly IServiceProvider _services;
-            private readonly ILogger<LoaderService> _logger;
 
-            public LoaderService(IServiceProvider services, ILogger<LoaderService> logger)
+            public LoaderService(IServiceProvider services)
             {
                 _services = services;
-                _logger = logger;
             }
 
-            protected override async Task ExecuteAsync(CancellationToken stoppingToken) =>  await Task.Run(() =>
+            protected override async Task ExecuteAsync(CancellationToken stoppingToken) => await Task.Run(() =>
             {
-                _logger.LogInformation("Loading album list.");
-                var sw = System.Diagnostics.Stopwatch.StartNew();
                 _services.GetRequiredService<AlbumList>();
-                sw.Stop();
-                _logger.LogInformation("Loaded album list in {TotalSeconds}s", Math.Round(sw.Elapsed.TotalSeconds, 2));
             }, stoppingToken);
         }
     }

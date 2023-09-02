@@ -41,7 +41,7 @@ Assuming you're using the precompiled version, not compiling it yourself, then:
 
 Just run the executable. It may take anywhere from a few seconds to a few minutes to scan through all the available music, depending on how much there is, and how fast the computer is.
 
-All audio files in the same folder are treated as a single album, so for Paramuse to work as intended, you have to organize your music into separate folders. Note that Paramuse only scans for music on startup, so if you want it to pick up any changes to your music library, you have to restart it.
+All audio files in the same folder are treated as a single album, so for Paramuse to work as intended, you have to organize your music into separate folders. If music files are added/removed/changed while Paramuse is running, it will automatically pick up the changes after a few seconds. Any running clients will have to be refreshed before they will show the changes.
 
 Album, track, and artist names are read from tags where available. If not, Paramuse will assume the folder is the album name, and the parent folder is the artist name.
 
