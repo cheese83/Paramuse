@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.IO;
+using Microsoft.Net.Http.Headers;
 using Paramuse.Models;
 using System.Collections.Immutable;
 using TagLib;
@@ -19,9 +20,17 @@ namespace Paramuse.Controllers
             _albums = albumList.Albums;
         }
 
-        [ResponseCache(Duration = 60 * 5)]
         public IActionResult Index()
         {
+            var currentETag = _albums.GetHashCode().ToString();
+
+            if (Request.Headers.TryGetValue(HeaderNames.IfNoneMatch, out var requestedETag) && requestedETag == currentETag)
+            {
+                return StatusCode(StatusCodes.Status304NotModified);
+            }
+
+            Response.Headers.Add(HeaderNames.ETag, currentETag);
+
             return View(_albums);
         }
 
