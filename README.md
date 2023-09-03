@@ -53,7 +53,7 @@ Once it's finished loading, press the play/pause button to start playing a rando
 
 The button with the squiggly arrows next to the play/pause button toggles shuffling. When it's enabled (glowing green) then when the current album is finished, the next one will be chosen at random. When it's disabled, albums will be played sequentially from the list (alphabetical order).
 
-Click on an album in the list to expand it to see all the tracks it contains. If one is currently playing, it will be highlighted.
+Click on an album in the list to expand it to see all the tracks it contains. If one is currently playing, it will be highlighted. Click on a track name in the list to show details such as tags and codec.
 
 Note that the volume control goes from -18dB all the way up to +6dB (in 1dB steps). This is because most modern music will have ReplayGain gain that is strongly negative, due to the [loudness war](https://en.wikipedia.org/wiki/Loudness_war), ao settings above 0dB may be helpful to bring the overall volume back up closer to full. This risks making any less-compressed tracks sound relatively too quiet though. If your music doesn't have ReplayGain tags, then setting the volumn above 0dB will not increase the volume any higher than 0dB.
 

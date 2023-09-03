@@ -117,5 +117,22 @@ namespace Paramuse.Controllers
                 throw new ArgumentException("Unsupported file format.", nameof(path));
             }
         }
+
+        [ResponseCache(VaryByQueryKeys = new[] { "*" }, Duration = 60 * 5)]
+        public IActionResult Tags(string path)
+        {
+            if (!_albums.SelectMany(album => album.Tracks).Any(track => track.Path == path))
+            {
+                return NotFound();
+            }
+
+            var fi = new FileInfo(Path.Combine(_basePath, path));
+            using var tagFile = TagLib.File.Create(fi.FullName);
+            var model = new TagsViewModel(fi.Name, fi.Length, tagFile.Properties, tagFile.Tag);
+
+            return PartialView(model);
+        }
+
+        public record TagsViewModel(string Name, long Length, Properties Properties, Tag Tag);
     }
 }

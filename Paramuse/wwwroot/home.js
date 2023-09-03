@@ -457,3 +457,33 @@
 
     settings.load();
 })();
+
+(() => {
+    const albumList = document.getElementById('album-list');
+    const modal = document.getElementById('tag-modal');
+    const container = modal.querySelector('.modal-content');
+
+    albumList.addEventListener('click', event => {
+        const anchor = event.target.closest('a');
+        const url = anchor?.dataset.url;
+
+        if (url) {
+            const request = new Request(url);
+            fetch(request)
+                .then(response => response.text())
+                .then(text => {
+                    container.innerHTML = text;
+                    modal.showModal();
+                });
+
+            event.preventDefault();
+        }
+    });
+
+    modal.addEventListener('click', event => {
+        // If the target is the modal itself, then the click was outside the modal (or at least not on its content).
+        if (event.target === modal) {
+            modal.close();
+        }
+    });
+})();
