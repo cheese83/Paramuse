@@ -91,9 +91,11 @@
                                     inconsistentTrackNo ? TagState.Mixed :
                                     track.TrackNoTagState;
                                 <li class="@(tagStateClass(trackNoTagState))" title="@tagStateTitle(trackNoTagState, "track no.")" value="@value" data-src="@Url.Action("Track", new { path = track.Path })" data-gain="@track.Gain" data-peak="@track.Peak">
-                                    <div class="track-album @tagStateClass(track.AlbumTagState)">@track.Album</div>
-                                    <div class="track-artist @tagStateClass(track.ArtistTagState)">@track.Artist</div>
-                                    <div class="track-title @tagStateClass(track.TitleTagState)">@track.Title</div>
+                                    <a href="#tag-modal" data-url="@Url.Action("Tags", new { path = track.Path })">
+                                        <div class="track-album @tagStateClass(track.AlbumTagState)">@track.Album</div>
+                                        <div class="track-artist @tagStateClass(track.ArtistTagState)">@track.Artist</div>
+                                        <div class="track-title @tagStateClass(track.TitleTagState)">@track.Title</div>
+                                    </a>
                                 </li>
                             }
                         }
@@ -103,6 +105,11 @@
         </li>
     }
 </ul>
+
+<dialog id="tag-modal">
+    <form><button formmethod="dialog">❌</button></form>
+    <div class="modal-content"></div>
+</dialog>
 
 @section scripts
 {

@@ -1,0 +1,153 @@
+﻿@model Paramuse.Controllers.HomeController.TagsViewModel
+
+@{
+    var tagsRendered = 0;
+    void renderTag<T>(string name, T? value, string? format = null)
+    {
+        var list = (value as IEnumerable<string>)?.ToList();
+        @if (value is null
+            || EqualityComparer<T>.Default.Equals(value, default(T))
+            || (value is double && double.IsNaN(Convert.ToDouble(value)))
+            || list?.Count == 0)
+        {
+            return;
+        }
+        string formatValue(T? val)
+            => val is null ? ""
+                : format == null ? (val.ToString())!
+                : format.Replace("{value}", val.ToString());
+        tagsRendered++;
+        <tr>
+            <th>@name</th>
+            <td>
+                @if (list != null)
+                {
+                    if (list.Count == 1)
+                    {
+                        @list.First()
+                    }
+                    else
+                    {
+                        <ul>
+                            @foreach (var val in list)
+                            {
+                                <li>@val</li>
+                            }
+                        </ul>
+                    }
+                }
+                else
+                {
+                    @formatValue(value)
+                }
+            </td>
+        </tr>
+    }
+
+    string formatFileSize(long bytes)
+    {
+        var suffixes = new string[] { "B", "KB", "MB", "GB", "TB" };
+        var sizes = suffixes.Select((suffix, i) => (size: bytes / Math.Pow(1024, i), suffix));
+        var bestSize = sizes.Where(x => x.size > 1).Last();
+
+        return $"{bestSize.size.ToString("N1")} {bestSize.suffix}";
+    }
+}
+
+<h2>Metadata</h2>
+<table>
+    <tbody>
+        <tr>
+            <th>File Name</th>
+            <td>@Model.Name</td>
+        </tr>
+        <tr>
+            <th>File Size</th>
+            <td>@formatFileSize(Model.Length)</td>
+        </tr>
+        <tr>
+            <th>Duration</th>
+            <td>@Model.Properties.Duration.ToString("m\\:ss")</td>
+        </tr>
+        <tr>
+            <th>Codec</th>
+            <td>@Model.Properties.Description</td>
+        </tr>
+        <tr>
+            <th>Bitrate</th>
+            <td>@Model.Properties.AudioBitrate kb/s</td>
+        </tr>
+        <tr>
+            <th>Sample Rate</th>
+            <td>@Model.Properties.AudioSampleRate Hz</td>
+        </tr>
+        <tr>
+            <th>Bit Depth</th>
+            <td>@(Model.Properties.BitsPerSample == 0 ? "-" : $"{Model.Properties.BitsPerSample}")</td>
+        </tr>
+        <tr>
+            <th>Channels</th>
+            <td>@Model.Properties.AudioChannels</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Tags</h2>
+<table>
+    <tbody>
+        @* TagLibSharp doesn't provide a way to get a simple list of all tags that are present, so list them explicitly. *@
+        @{ renderTag("Performers", Model.Tag.Performers); }
+        @{ renderTag("Album Artitsts", Model.Tag.AlbumArtists); }
+        @{ renderTag("Composers", Model.Tag.Composers); }
+        @{ renderTag("Conductor", Model.Tag.Conductor); }
+        @{ renderTag("Title", Model.Tag.Title); }
+        @{ renderTag("Subtitle", Model.Tag.Subtitle); }
+        @{ renderTag("Album", Model.Tag.Album); }
+        @{ renderTag("Track", Model.Tag.Track); }
+        @{ renderTag("Track Count", Model.Tag.TrackCount); }
+        @{ renderTag("Disc", Model.Tag.Disc); }
+        @{ renderTag("Disc", Model.Tag.DiscCount); }
+        @{ renderTag("Year", Model.Tag.Year); }
+        @{ renderTag("Genres", Model.Tag.Genres); }
+        @{ renderTag("Description", Model.Tag.Description); }
+        @{ renderTag("Comment", Model.Tag.Comment); }
+        @{ renderTag("Lyrics", Model.Tag.Lyrics); }
+        @{ renderTag("Grouping", Model.Tag.Grouping); }
+        @{ renderTag("BPM", Model.Tag.BeatsPerMinute); }
+        @{ renderTag("Remixed By", Model.Tag.RemixedBy); }
+        @{ renderTag("Publisher", Model.Tag.Publisher); }
+        @{ renderTag("Copyright", Model.Tag.Copyright); }
+        @{ renderTag("Date Tagged", Model.Tag.DateTagged); }
+        @{ renderTag("Initial Key", Model.Tag.InitialKey); }
+    </tbody>
+</table>
+
+@if (tagsRendered == 0)
+{
+    <div>Tags are missing.</div>
+}
+
+@if (new List<double> { Model.Tag.ReplayGainTrackGain, Model.Tag.ReplayGainTrackPeak, Model.Tag.ReplayGainAlbumGain, Model.Tag.ReplayGainAlbumPeak }.Any(x => !double.IsNaN(x)))
+{
+    <h2>ReplayGain</h2>
+    <table>
+        <tbody>
+            @{ renderTag("Track Gain", Model.Tag.ReplayGainTrackGain, "{value} dB"); }
+            @{ renderTag("Track Peak", Model.Tag.ReplayGainTrackPeak); }
+            @{ renderTag("Album Gain", Model.Tag.ReplayGainAlbumGain, "{value} dB"); }
+            @{ renderTag("Album Peak", Model.Tag.ReplayGainAlbumPeak); }
+        </tbody>
+    </table>
+}
+
+@if (Model.Tag.Pictures.Any())
+{
+    <h2>Pictures</h2>
+    @foreach (var picture in Model.Tag.Pictures)
+    {
+        <figure>
+            <figcaption>@picture.Type</figcaption>
+            <img src="data:@picture.MimeType;base64,@System.Convert.ToBase64String(picture.Data.ToArray())">
+        </figure>
+    }
+}
