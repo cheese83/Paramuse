@@ -199,8 +199,11 @@
             const currentTrack = settings.get('CurrentTrack');
             if (currentTrack !== null) {
                 const currentTrackContrainer = albumList.querySelector(`li[data-src="${currentTrack}"]`);
-                audioGraph.nextAudio.setAttribute('src', currentTrackContrainer.dataset.src);
-                advanceTrack(false);
+                // currentTrackContrainer can be null even if currentTrack is not null, if the currentTrack was deleted before the page was last reloaded.
+                if (currentTrackContrainer != null) {
+                    audioGraph.nextAudio.setAttribute('src', currentTrackContrainer.dataset.src);
+                    advanceTrack(false);
+                }
             }
         }
     };
