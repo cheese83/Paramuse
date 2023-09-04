@@ -165,8 +165,17 @@ namespace Paramuse.Models
                     var tracks = Directory.EnumerateFiles(dir, "*.*").Where(FileTypeHelpers.IsSupportedAudioFile)
                         .Select(file =>
                         {
-                            using var tagFile = TagLib.File.Create(file);
-                            return new Track(tagFile.Tag, Path.GetRelativePath(basePath, file));
+                            try
+                            {
+                                using var tagFile = TagLib.File.Create(file);
+                                return new Track(tagFile.Tag, Path.GetRelativePath(basePath, file));
+                            }
+                            catch (Exception ex)
+                            {
+                                logger.LogWarning( "Failed to read track: {Message} {file}", ex.Message, file);
+                                var blankTag = new TagLib.Id3v2.Tag();
+                                return new Track(blankTag, Path.GetRelativePath(basePath, file));
+                            }
                         })
                         .OrderBy(track => track.DiscNo).ThenBy(track => track.TrackNo).ThenBy(track => track.Path)
                         .ToImmutableList();
