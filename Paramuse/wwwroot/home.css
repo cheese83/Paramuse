@@ -157,11 +157,11 @@ body {
         text-shadow: 0 0 0.2em black; /* Give the text a little contrast against the bright spectrum analyser. */
     }
 
-    #player > .track-album {
+    #player > .track-artist {
         grid-row: 1;
     }
 
-    #player > .track-artist {
+    #player > .track-album {
         grid-row: 2;
     }
 
