@@ -239,7 +239,9 @@ namespace Paramuse.Models
     public static class FileTypeHelpers
     {
         private static readonly IImmutableSet<(string extension, string mimeType)> _supportedAudioFormats = ImmutableHashSet.Create((".flac", "audio/flac"), (".mp3", "audio/mpeg"), (".ogg", "audio/ogg"));
-        private static readonly IImmutableSet<(string extension, string mimeType)> _supportedImageFormats = ImmutableHashSet.Create((".jpg", "image/jpg"), (".jpeg", "image/jpg"), (".png", "image/png"));
+        private static readonly IImmutableSet<(string extension, string mimeType)> _supportedImageFormats = ImmutableHashSet.Create((".jpg", "image/jpeg"), (".jpeg", "image/jpeg"), (".png", "image/png"));
+        // Seems to be a relatively common error.
+        private static readonly IImmutableDictionary<string, string> _mimeTypeMappings = new Dictionary<string, string> { { "image/jpg", "image/jpeg" } }.ToImmutableDictionary();
 
         private static bool IsSupportedFile(string path, IEnumerable<(string extension, string mimeType)> formats) => formats.Any(x => x.extension.Equals(Path.GetExtension(path), StringComparison.InvariantCultureIgnoreCase));
         private static string? MimeTypeForFile(string path, IEnumerable<(string extension, string mimeType)> formats) => formats.Where(x => x.extension.Equals(Path.GetExtension(path).ToLowerInvariant(), StringComparison.InvariantCultureIgnoreCase)).Select(x => x.mimeType).SingleOrDefault();
@@ -250,6 +252,11 @@ namespace Paramuse.Models
         public static string? MimeTypeForAudioFile(string path) => MimeTypeForFile(path, _supportedAudioFormats);
         public static string? MimeTypeForImageFile(string path) => MimeTypeForFile(path, _supportedImageFormats);
 
-        public static bool IsSupportedImageMimeType(string mimeType) => _supportedImageFormats.Any(x => x.mimeType.Equals(mimeType, StringComparison.InvariantCultureIgnoreCase));
+        public static string NormalizeMimeType(string mimeType) => _mimeTypeMappings.TryGetValue(mimeType, out var mapped) ? mapped : mimeType;
+        public static bool IsSupportedImageMimeType(string mimeType)
+        {
+            var normalizedMimeType = NormalizeMimeType(mimeType);
+            return _supportedImageFormats.Any(x => x.mimeType.Equals(normalizedMimeType, StringComparison.InvariantCultureIgnoreCase));
+        }
     }
 }

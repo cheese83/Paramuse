@@ -147,7 +147,7 @@
     {
         <figure>
             <figcaption>@picture.Type</figcaption>
-            <img src="data:@picture.MimeType;base64,@System.Convert.ToBase64String(picture.Data.ToArray())">
+            <img src="data:@FileTypeHelpers.NormalizeMimeType(picture.MimeType);base64,@System.Convert.ToBase64String(picture.Data.ToArray())">
         </figure>
     }
 }
