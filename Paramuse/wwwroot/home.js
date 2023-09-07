@@ -361,8 +361,14 @@
         trackTitle.setAttribute('title', trackTitle.textContent);
 
         const coverSrc = currentAlbumContainer.querySelector('img')?.getAttribute('src');
-        albumCover.style.backgroundImage = coverSrc ? `url('${coverSrc}')` : '';
-        albumCover.innerHTML = coverSrc ? '' : '?';
+        if (coverSrc) {
+            albumCover.innerHTML = '';
+            const img = new Image();
+            img.src = coverSrc;
+            albumCover.appendChild(img);
+        } else {
+            albumCover.innerHTML = '?';
+        }
         albumCover.setAttribute('href', `#${currentAlbumContainer.id}`);
 
         document.title = `${trackTitle.textContent} - Paramuse`;

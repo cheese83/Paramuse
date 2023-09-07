@@ -136,17 +136,18 @@ body {
         grid-column: 1;
         height: 100%;
         aspect-ratio: 1/1;
-        margin: 0 auto;
-        display: block;
         font-size: clamp(4.5em, min(18vh, 18vw), 12em);
         line-height: 1em;
         text-align: center;
-        background-size: contain;
-        background-repeat: no-repeat;
-        background-position-x: center;
-        background-position-y: center;
         text-decoration: none;
     }
+
+        #player > .album-cover img {
+            object-fit: contain;
+            max-height: 100%;
+            max-width: 100%;
+            vertical-align: middle;
+        }
 
     #player > :is(.track-album, .track-artist, .track-title) {
         grid-column: 2;
