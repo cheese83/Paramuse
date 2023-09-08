@@ -238,7 +238,7 @@ namespace Paramuse.Models
 
     public static class FileTypeHelpers
     {
-        private static readonly IImmutableSet<(string extension, string mimeType)> _supportedAudioFormats = ImmutableHashSet.Create((".flac", "audio/flac"), (".mp3", "audio/mpeg"), (".ogg", "audio/ogg"));
+        private static readonly IImmutableSet<(string extension, string mimeType)> _supportedAudioFormats = ImmutableHashSet.Create((".flac", "audio/flac"), (".mp3", "audio/mpeg"), (".ogg", "audio/ogg"), (".m4a", "audio/mp4"), (".mp4", "audio/mp4"));
         private static readonly IImmutableSet<(string extension, string mimeType)> _supportedImageFormats = ImmutableHashSet.Create((".jpg", "image/jpeg"), (".jpeg", "image/jpeg"), (".png", "image/png"));
         // Seems to be a relatively common error.
         private static readonly IImmutableDictionary<string, string> _mimeTypeMappings = new Dictionary<string, string> { { "image/jpg", "image/jpeg" } }.ToImmutableDictionary();
