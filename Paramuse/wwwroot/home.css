@@ -364,17 +364,22 @@ div.tag-mixed, li.tag-mixed::marker {
 
 #tag-modal {
     min-width: 20em;
-    max-width: 35em;
+    max-width: 100%;
     background: var(--background);
     color: var(--foreground);
     padding: 0.5em;
     /* The glow overflows, so it must be set to visible. This means scrolling must be done with a div inside the dialog. */
     overflow: visible;
+    box-sizing: border-box;
 }
 
     #tag-modal::backdrop {
         background: black;
         opacity: 0.7;
+    }
+
+    #tag-modal.modal-tags {
+        max-width: 35em;
     }
 
     #tag-modal > form {
@@ -394,7 +399,7 @@ div.tag-mixed, li.tag-mixed::marker {
             }
 
     #tag-modal > div {
-        max-height: calc(100vh - 4em);
+        max-height: calc(100vh - 5em);
         overflow-y: auto;
     }
 
@@ -417,6 +422,11 @@ div.tag-mixed, li.tag-mixed::marker {
         margin-bottom: 1.5em;
     }
 
+    #tag-modal img {
+        min-width: min(20em, 100%);
+        max-width: 100%;
+    }
+
     #tag-modal figure {
         margin-left: 0;
         margin-right: 0;
@@ -429,7 +439,6 @@ div.tag-mixed, li.tag-mixed::marker {
 
         #tag-modal figure img {
             max-width: 100%;
-            max-height: 30em;
         }
 
     #tag-modal ul {

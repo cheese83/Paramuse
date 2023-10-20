@@ -49,14 +49,18 @@ namespace Paramuse.Controllers
         }
 
         [ResponseCache(VaryByQueryKeys = new[] { "*" }, Duration = 60 * 60 * 24 * 7)]
-        public async Task<IActionResult> Cover(string path)
+        public async Task<IActionResult> Cover(string path, string size)
         {
             var maxImageBytes = 64 * 1024;
             async Task<Stream> Resize(Image image)
             {
-                var newWidth = Math.Min(image.Width, 200);
-                var newHeight = (int)((newWidth / (double)image.Width) * image.Height);
-                image.Mutate(x => x.Resize(newWidth, newHeight));
+                if (size == "thumb")
+                {
+                    var newWidth = Math.Min(image.Width, 200);
+                    var newHeight = (int)((newWidth / (double)image.Width) * image.Height);
+                    image.Mutate(x => x.Resize(newWidth, newHeight));
+                }
+
                 var stream = _memoryStreamManager.GetStream();
                 await image.SaveAsJpegAsync(stream, new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder() { Quality = 80 });
                 stream.Position = 0;

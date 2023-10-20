@@ -66,7 +66,7 @@
                     <div class="album-title @tagStateClass(album.NameTagState)" title="@tagStateTitle(album.NameTagState, "album title")">@album.Name</div>
                     @if (album.CoverPath != "")
                     {
-                        <img class="album-cover" src="@Url.Action("Cover", new { path = album.CoverPath })" loading="lazy">
+                        <img class="album-cover" src="@Url.Action("Cover", new { path = album.CoverPath, size = "thumb" })" loading="lazy">
                     }
                     else
                     {
