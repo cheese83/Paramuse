@@ -473,19 +473,29 @@
     const container = modal.querySelector('.modal-content');
 
     albumList.addEventListener('click', event => {
-        const anchor = event.target.closest('a');
-        const url = anchor?.dataset.url;
-
-        if (url) {
-            const request = new Request(url);
-            fetch(request)
-                .then(response => response.text())
-                .then(text => {
-                    container.innerHTML = text;
-                    modal.showModal();
-                });
-
+        if (event.target.nodeName === 'IMG') {
+            const url = new URL(event.target.src);
+            url.searchParams.delete('size');
+            container.innerHTML = `<img src="${url.href}">`;
+            modal.className = 'modal-cover';
+            modal.showModal();
             event.preventDefault();
+        } else {
+            const anchor = event.target.closest('a');
+            const url = anchor?.dataset.url;
+
+            if (url) {
+                const request = new Request(url);
+                fetch(request)
+                    .then(response => response.text())
+                    .then(text => {
+                        container.innerHTML = text;
+                        modal.className = 'modal-tags';
+                        modal.showModal();
+                    });
+
+                event.preventDefault();
+            }
         }
     });
 
