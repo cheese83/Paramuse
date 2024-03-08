@@ -393,7 +393,7 @@
         const target = albumList.querySelector(id);
         const bounds = target.getBoundingClientRect();
         const playerHeight = player.getBoundingClientRect().height;
-        const targetMiddle = window.pageYOffset + bounds.top + (bounds.height / 2);
+        const targetMiddle = window.scrollY + bounds.top + (bounds.height / 2);
         const halfViewportHeight = (document.documentElement.clientHeight - playerHeight) / 2;
         window.scrollTo({ top: targetMiddle - halfViewportHeight - playerHeight });
     };
