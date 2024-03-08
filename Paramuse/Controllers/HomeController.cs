@@ -2,6 +2,8 @@
 using Microsoft.IO;
 using Microsoft.Net.Http.Headers;
 using Paramuse.Models;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 using System.Collections.Immutable;
 using TagLib;
 
