@@ -440,7 +440,7 @@
     navigator.mediaSession.setActionHandler('previoustrack', handlePreviousTrack);
 
     const handleNextTrack = () => {
-        if (!audioGraph.nextAudio) {
+        if (!audioGraph.nextAudio.src) {
             cueNextTrack();
         }
 
