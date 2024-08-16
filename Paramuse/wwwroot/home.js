@@ -143,6 +143,7 @@
         analyserNode.connect(gainNode);
         gainNode.connect(context.destination);
 
+        currentAudio.addEventListener('loadedmetadata', controls.updateTimeline);
         currentAudio.addEventListener('timeupdate', controls.updateTimeline);
 
         return {
