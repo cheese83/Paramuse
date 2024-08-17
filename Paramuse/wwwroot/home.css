@@ -140,13 +140,15 @@ body {
         line-height: 1em;
         text-align: center;
         text-decoration: none;
+        display: grid;
+        align-items: center;
+        justify-items: center;
     }
 
         #player > .album-cover img {
             object-fit: contain;
-            max-height: 100%;
-            max-width: 100%;
-            vertical-align: middle;
+            height: 100%;
+            width: 100%;
         }
 
     #player > :is(.track-album, .track-artist, .track-title) {
