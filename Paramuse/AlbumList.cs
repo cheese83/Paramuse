@@ -194,7 +194,7 @@ namespace Paramuse.Models
                     var artistTagState = tracks.Any(track => track.ArtistTagState == TagState.Missing) ? TagState.Missing :
                         tracks.Select(track => track.Artist).Distinct().Count() > 1 ? TagState.Mixed :
                         TagState.Consistent;
-                    var titleTagState = tracks.Any(track => track.TitleTagState == TagState.Missing) ? TagState.Missing :
+                    var titleTagState = tracks.Any(track => track.AlbumTagState == TagState.Missing) ? TagState.Missing :
                         tracks.Select(track => track.Album).Distinct().Count() > 1 ? TagState.Mixed :
                         TagState.Consistent;
                     var replayGainTagState = tracks.Any(track => track.ReplayGainTagState == TagState.Missing) ? TagState.Missing :
