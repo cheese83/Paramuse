@@ -473,7 +473,18 @@
     const modal = document.getElementById('tag-modal');
     const container = modal.querySelector('.modal-content');
 
+    let controller;
+    const abortRequest = () => {
+        if (controller) {
+            controller.abort();
+            controller = undefined;
+        }
+    };
+
     albumList.addEventListener('click', event => {
+        // Make sure result of a previous fetch() won't be shown unexpectedly.
+        abortRequest();
+
         if (event.target.nodeName === 'IMG') {
             const url = new URL(event.target.src);
             url.searchParams.delete('size');
@@ -486,7 +497,8 @@
             const url = anchor?.dataset.url;
 
             if (url) {
-                const request = new Request(url);
+                controller = new AbortController();
+                const request = new Request(url, { signal: controller.signal });
                 container.innerHTML = '';
                 modal.className = 'modal-tags';
                 modal.showModal();
@@ -502,7 +514,10 @@
                         container.innerHTML = text;
                     })
                     .catch(error => {
-                        container.textContent = error.message;
+                        // AbortError is thrown on controller.abort().
+                        if (!(error.name === 'AbortError')) {
+                            container.textContent = error.message;
+                        }
                     });
 
                 event.preventDefault();
@@ -516,4 +531,7 @@
             modal.close();
         }
     });
+
+    // No need to wait for a request to finish if it will never be seen.
+    modal.addEventListener('close', abortRequest);
 })();
