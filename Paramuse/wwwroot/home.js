@@ -487,12 +487,22 @@
 
             if (url) {
                 const request = new Request(url);
+                container.innerHTML = '';
+                modal.className = 'modal-tags';
+                modal.showModal();
+
                 fetch(request)
-                    .then(response => response.text())
+                    .then(response => {
+                        if (response.ok)
+                            return response.text();
+                        else
+                            throw new Error(`HTTP error ${response.status} ${response.statusText}`);
+                    })
                     .then(text => {
                         container.innerHTML = text;
-                        modal.className = 'modal-tags';
-                        modal.showModal();
+                    })
+                    .catch(error => {
+                        container.textContent = error.message;
                     });
 
                 event.preventDefault();

@@ -19,6 +19,28 @@
     }
 }
 
+@keyframes spinner {
+    0% {
+        transform: rotate(0);
+    }
+
+    30% {
+        transform: rotate(0);
+    }
+
+    50% {
+        transform: rotate(180deg);
+    }
+
+    80% {
+        transform: rotate(180deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 :root {
     --background: black;
     --foreground: white;
@@ -366,6 +388,7 @@ div.tag-mixed, li.tag-mixed::marker {
 
 #tag-modal {
     min-width: 20em;
+    min-height: 10em;
     max-width: 100%;
     background: var(--background);
     color: var(--foreground);
@@ -383,6 +406,26 @@ div.tag-mixed, li.tag-mixed::marker {
     #tag-modal.modal-tags {
         max-width: 35em;
     }
+
+        #tag-modal.modal-tags .modal-content:empty {
+            display: grid;
+            align-items: center;
+            justify-items: center;
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+        }
+
+            #tag-modal.modal-tags .modal-content:empty::before {
+                content: "⌛";
+                font-size: 2em;
+                animation-duration: 4s;
+                animation-name: spinner;
+                animation-timing-function: ease-in-out;
+                animation-iteration-count: infinite;
+            }
 
     #tag-modal > form {
         text-align: right;
