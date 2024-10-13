@@ -488,9 +488,24 @@
         if (event.target.nodeName === 'IMG') {
             const url = new URL(event.target.src);
             url.searchParams.delete('size');
-            container.innerHTML = `<img src="${url.href}">`;
+
+            const img = new Image();
+            // 'load' event doesn't bubble, so the event listener needs to be on the img, not the container.
+            img.addEventListener('load', event => {
+                container.classList.remove('loading');
+            });
+            img.addEventListener('error', event => {
+                container.classList.remove('loading');
+            });
+            img.src = url.href;
+            if (!img.complete) {
+                container.classList.add('loading');
+            }
+            container.replaceChildren(img);
+
             modal.className = 'modal-cover';
             modal.showModal();
+
             event.preventDefault();
         } else {
             const anchor = event.target.closest('a');
@@ -500,6 +515,7 @@
                 controller = new AbortController();
                 const request = new Request(url, { signal: controller.signal });
                 container.innerHTML = '';
+                container.classList.add('loading');
                 modal.className = 'modal-tags';
                 modal.showModal();
 
@@ -518,6 +534,9 @@
                         if (!(error.name === 'AbortError')) {
                             container.textContent = error.message;
                         }
+                    })
+                    .finally(() => {
+                        container.classList.remove('loading');
                     });
 
                 event.preventDefault();

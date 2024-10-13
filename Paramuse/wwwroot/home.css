@@ -407,25 +407,29 @@ div.tag-mixed, li.tag-mixed::marker {
         max-width: 35em;
     }
 
-        #tag-modal.modal-tags .modal-content:empty {
-            display: grid;
-            align-items: center;
-            justify-items: center;
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: 0;
-            bottom: 0;
+    #tag-modal .modal-content.loading {
+        display: grid;
+        align-items: center;
+        justify-items: center;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+    }
+
+        #tag-modal .modal-content.loading::before {
+            content: "⌛";
+            font-size: 2em;
+            animation-duration: 4s;
+            animation-name: spinner;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: infinite;
         }
 
-            #tag-modal.modal-tags .modal-content:empty::before {
-                content: "⌛";
-                font-size: 2em;
-                animation-duration: 4s;
-                animation-name: spinner;
-                animation-timing-function: ease-in-out;
-                animation-iteration-count: infinite;
-            }
+        #tag-modal .modal-content.loading > * {
+            display: none;
+        }
 
     #tag-modal > form {
         text-align: right;
