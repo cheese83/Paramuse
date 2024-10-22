@@ -493,3 +493,7 @@ div.tag-mixed, li.tag-mixed::marker {
     #tag-modal ul {
         padding-left: 1em;
     }
+
+    tr.lyrics > td {
+        white-space: pre-wrap;
+    }

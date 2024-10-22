@@ -2,7 +2,7 @@
 
 @{
     var tagsRendered = 0;
-    void renderTag<T>(string name, T? value, string? format = null)
+    void renderTag<T>(string name, T? value, string? format = null, string? cssClass = null)
     {
         var list = (value as IEnumerable<string>)?.ToList();
         @if (value is null
@@ -17,7 +17,7 @@
                 : format == null ? (val.ToString())!
                 : format.Replace("{value}", val.ToString());
         tagsRendered++;
-        <tr>
+        <tr class="@cssClass">
             <th>@name</th>
             <td>
                 @if (list != null)
@@ -111,7 +111,7 @@
         @{ renderTag("Genres", Model.Tag.Genres); }
         @{ renderTag("Description", Model.Tag.Description); }
         @{ renderTag("Comment", Model.Tag.Comment); }
-        @{ renderTag("Lyrics", Model.Tag.Lyrics); }
+        @{ renderTag("Lyrics", Model.Tag.Lyrics, cssClass: "lyrics"); }
         @{ renderTag("Grouping", Model.Tag.Grouping); }
         @{ renderTag("BPM", Model.Tag.BeatsPerMinute); }
         @{ renderTag("Remixed By", Model.Tag.RemixedBy); }
