@@ -179,10 +179,10 @@ namespace Paramuse.Models
                         })
                         .OrderBy(track => track.DiscNo).ThenBy(track => track.TrackNo).ThenBy(track => track.Path)
                         .ToImmutableList();
-                    var coverPath = tracks.FirstOrDefault(track => track.HasCover)?.Path
-                        ?? Directory.EnumerateFiles(dir, "*", new EnumerationOptions { RecurseSubdirectories = true })
+                    var coverPath = Directory.EnumerateFiles(dir, "*", new EnumerationOptions { RecurseSubdirectories = true })
                             .Where(FileTypeHelpers.IsSupportedImageFile)
-                            .OrderByDescending(file => _coverNames.Any(name => Path.GetFileNameWithoutExtension(file).Contains(name, StringComparison.InvariantCultureIgnoreCase)))
+                            .OrderByDescending(file => _coverNames.Count(name => Path.GetFileNameWithoutExtension(file).Contains(name, StringComparison.InvariantCultureIgnoreCase)))
+                            .ThenBy(file => Path.GetDirectoryName(file)?.Length) // Prefer files in the same dir as the audio files.
                             .ThenBy(file =>
                             {
                                 var match = Regex.Match(Path.GetFileNameWithoutExtension(file), "\\d+");
@@ -190,7 +190,9 @@ namespace Paramuse.Models
                             })
                             .ThenBy(file => new FileInfo(file).Length) // Assume that smaller files are likely to be thumbnails - huge multi-MB scans are not a good choice.
                             .Select(file => Path.GetRelativePath(basePath, file))
-                            .FirstOrDefault() ?? "";
+                            .FirstOrDefault()
+                        ?? tracks.FirstOrDefault(track => track.HasCover)?.Path
+                        ?? "";
                     var artistTagState = tracks.Any(track => track.ArtistTagState == TagState.Missing) ? TagState.Missing :
                         tracks.Select(track => track.Artist).Distinct().Count() > 1 ? TagState.Mixed :
                         TagState.Consistent;
