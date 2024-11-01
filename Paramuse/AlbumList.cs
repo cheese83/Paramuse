@@ -207,7 +207,8 @@ namespace Paramuse.Models
 
                     return new Album(artist, title, tracks, coverPath, artistTagState, titleTagState, replayGainTagState);
                 })
-                .OrderBy(album => album.Artist).ThenBy(album => album.Name)
+                .OrderBy(album => album.Artist, StringComparer.InvariantCultureIgnoreCase)
+                .ThenBy(album => album.Name, StringComparer.InvariantCultureIgnoreCase)
                 .ToImmutableList();
 
             sw.Stop();
