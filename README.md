@@ -1,9 +1,10 @@
 # Paramuse
 
-Paramuse is a music server which can stream music over a network to a web browser. I wrote it to meet some specific requirements:
+Paramuse is a self-hosted streaming music server which can send music over a network to a web browser. I wrote it to meet some specific requirements:
 
 * Play whole albums, chosen at random.
 * Use a web browser as a client, so it works on every platform.
+* No transcoding, to keep the sound quality as high as possible.
 * Support [ReplayGain](https://en.wikipedia.org/wiki/ReplayGain).
 
 I mostly intended it for use on a LAN, so it has no built-in security. If you want to use it over the internet, you will need to secure it behind a VPN, or reverse proxy or something, so it isn't publicly accessible.
