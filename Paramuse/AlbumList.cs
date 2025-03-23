@@ -25,6 +25,7 @@ namespace Paramuse.Models
     public record Track
     (
         string Artist,
+        string AlbumArtist,
         string Album,
         string Title,
         int TrackNo,
@@ -43,6 +44,7 @@ namespace Paramuse.Models
         public Track(Tag tag, string path) : this
         (
             Artist: tag.JoinedPerformers ?? tag.JoinedAlbumArtists ?? "?",
+            AlbumArtist: tag.JoinedAlbumArtists ?? "",
             Album: tag.Album ?? "?",
             Title: tag.Title ?? System.IO.Path.GetFileName(path),
             TrackNo: (int)tag.Track,
@@ -194,7 +196,7 @@ namespace Paramuse.Models
                         ?? tracks.FirstOrDefault(track => track.HasCover)?.Path
                         ?? "";
                     var artistTagState = tracks.Any(track => track.ArtistTagState == TagState.Missing) ? TagState.Missing :
-                        tracks.Select(track => track.Artist).Distinct().Count() > 1 ? TagState.Mixed :
+                        tracks.Select(track => track.AlbumArtist != "" ? track.AlbumArtist : track.Artist).Distinct().Count() > 1 ? TagState.Mixed :
                         TagState.Consistent;
                     var titleTagState = tracks.Any(track => track.AlbumTagState == TagState.Missing) ? TagState.Missing :
                         tracks.Select(track => track.Album).Distinct().Count() > 1 ? TagState.Mixed :
@@ -202,7 +204,9 @@ namespace Paramuse.Models
                     var replayGainTagState = tracks.Any(track => track.ReplayGainTagState == TagState.Missing) ? TagState.Missing :
                         tracks.Select(track => track.Gain).Distinct().Count() > 1 ? TagState.Mixed :
                         TagState.Consistent;
-                    var artist = artistTagState == TagState.Consistent ? tracks.First().Artist : Directory.GetParent(dir)?.Name ?? "?";
+                    var artist = artistTagState == TagState.Consistent ?
+                        tracks.First().AlbumArtist != "" ? tracks.First().AlbumArtist : tracks.First().Artist :
+                        Directory.GetParent(dir)?.Name ?? "?";
                     var title = titleTagState == TagState.Consistent ? tracks.First().Album : new DirectoryInfo(dir).Name;
 
                     return new Album(artist, title, tracks, coverPath, artistTagState, titleTagState, replayGainTagState);
