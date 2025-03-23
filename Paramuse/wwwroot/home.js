@@ -375,9 +375,9 @@
         document.title = `${trackTitle.textContent} - Paramuse`;
 
         navigator.mediaSession.metadata = new MediaMetadata({
-            album: albumTitle.innerHTML,
-            artist: trackArtist.innerHTML,
-            title: trackTitle.innerHTML,
+            album: albumTitle.textContent,
+            artist: trackArtist.textContent,
+            title: trackTitle.textContent,
             artwork: coverSrc ? [{
                 src: coverSrc
             }] : undefined
