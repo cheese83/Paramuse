@@ -12,7 +12,7 @@ builder.WebHost.UseUrls($"http://*:{builder.Configuration["Port"]}");
 builder.Services.AddControllersWithViews();
 
 var basePath = builder.Configuration["BasePath"];
-var exclusions = builder.Configuration.GetSection("Exclusions").Get<IReadOnlyList<string>>() ?? new List<string>();
+var exclusions = builder.Configuration.GetSection("Exclusions").Get<IReadOnlyList<string>>() ?? [];
 builder.Services.AddSingleton(sp => new AlbumList(basePath, exclusions, sp.GetRequiredService<ILogger<AlbumList>>()));
 
 // Preload the album list straight away rather than waiting for the first request from a user.
