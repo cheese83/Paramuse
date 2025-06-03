@@ -80,10 +80,10 @@ namespace Paramuse.Models
         public readonly string BasePath;
         public IImmutableList<Album> Albums { get; private set; }
 
-        public AlbumList(string basePath, ILogger<AlbumList> logger)
+        public AlbumList(string basePath, IEnumerable<string> exclusions, ILogger<AlbumList> logger)
         {
             BasePath = basePath;
-            Albums = LoadAlbums(BasePath, logger);
+            Albums = LoadAlbums(BasePath, exclusions, logger);
 
             void restartTimer()
             {
@@ -104,7 +104,7 @@ namespace Paramuse.Models
                 {
                     try
                     {
-                        Albums = LoadAlbums(BasePath, logger);
+                        Albums = LoadAlbums(BasePath, exclusions, logger);
                     }
                     catch (Exception ex)
                     {
@@ -152,13 +152,14 @@ namespace Paramuse.Models
             _watcher.Renamed += reloadAfterDelay;
         }
 
-        private static IImmutableList<Album> LoadAlbums(string basePath, ILogger<AlbumList> logger)
+        private static IImmutableList<Album> LoadAlbums(string basePath, IEnumerable<string> exclusions, ILogger<AlbumList> logger)
         {
             logger.LogInformation("Loading album list.");
             var sw = System.Diagnostics.Stopwatch.StartNew();
 
             var dirs = Directory.EnumerateDirectories(basePath, "*", new EnumerationOptions { RecurseSubdirectories = true });
             var albumDirs = dirs
+                .Where(dir => !exclusions.Any(x => PathHelpers.DirIsSubdirOf(dir, Path.Combine(basePath, x))))
                 .Where(dir => Directory.EnumerateFiles(dir).Any(FileTypeHelpers.IsSupportedAudioFile))
                 .ToImmutableHashSet();
             var albums = albumDirs
@@ -264,6 +265,27 @@ namespace Paramuse.Models
         {
             var normalizedMimeType = NormalizeMimeType(mimeType);
             return _supportedImageFormats.Any(x => x.mimeType.Equals(normalizedMimeType, StringComparison.InvariantCultureIgnoreCase));
+        }
+    }
+
+    public static class PathHelpers
+    {
+        public static bool DirIsSubdirOf(string path, string possibleParent)
+        {
+            var dirToCheck = new DirectoryInfo(path);
+            var possibleParentDir = new DirectoryInfo(possibleParent);
+            var isSubDir = false;
+
+            for (var dir = dirToCheck; dir != null; dir = dir.Parent)
+            {
+                if (dir.FullName == possibleParentDir.FullName)
+                {
+                    isSubDir = true;
+                    break;
+                }
+            }
+
+            return isSubDir;
         }
     }
 }
