@@ -95,6 +95,10 @@
                                         <div class="track-album @tagStateClass(track.AlbumTagState)">@track.Album</div>
                                         <div class="track-artist @tagStateClass(track.ArtistTagState)">@track.Artist</div>
                                         <div class="track-title @tagStateClass(track.TitleTagState)">@track.Title</div>
+                                        @if  (track.HasCover)
+                                        {
+                                            <img class="track-cover" src="@Url.Action("Cover", new { path = track.Path, size = "thumb" })" loading="lazy">
+                                        }
                                     </a>
                                 </li>
                             }

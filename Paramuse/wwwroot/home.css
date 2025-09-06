@@ -360,7 +360,7 @@ body {
             grid-column: 3;
         }
 
-    #album-list :is(.track-album, .track-artist) {
+    #album-list :is(.track-album, .track-artist, .track-cover) {
         display: none;
     }
 

@@ -64,7 +64,7 @@ public class HomeController(AlbumList albumList) : Controller
             return stream;
         }
 
-        if (!_albums.Any(album => album.CoverPath == path))
+        if (!_albums.Any(album => album.CoverPath == path || album.Tracks.Any(track => track.HasCover && track.Path == path)))
         {
             return NotFound();
         }

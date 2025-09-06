@@ -361,7 +361,9 @@
         trackArtist.setAttribute('title', trackArtist.textContent);
         trackTitle.setAttribute('title', trackTitle.textContent);
 
-        const coverSrc = currentAlbumContainer.querySelector('img')?.getAttribute('src');
+        // Track covers are part of the audio metadata, but parsing it is complicated. Better to get the sever to send it separately.
+        const coverSrc = currentTrackContainer.querySelector('img')?.getAttribute('src')
+            ?? currentAlbumContainer.querySelector('img')?.getAttribute('src');
         if (coverSrc) {
             albumCover.innerHTML = '';
             const img = new Image();
