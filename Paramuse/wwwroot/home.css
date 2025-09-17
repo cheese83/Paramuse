@@ -171,6 +171,8 @@ body {
             object-fit: contain;
             height: 100%;
             width: 100%;
+            max-width: 1em;
+            max-height: 1em;
         }
 
     #player > :is(.track-album, .track-artist, .track-title) {
