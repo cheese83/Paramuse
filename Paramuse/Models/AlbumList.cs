@@ -214,6 +214,7 @@ public sealed class AlbumList : IDisposable
             })
             .OrderBy(album => album.Artist, StringComparer.InvariantCultureIgnoreCase)
             .ThenBy(album => album.Name, StringComparer.InvariantCultureIgnoreCase)
+            .ThenBy(album => album.Tracks.First().Path) // Ensure ordering is stable even when multiple albums share the same artist and name.
             .ToImmutableList();
 
         sw.Stop();
