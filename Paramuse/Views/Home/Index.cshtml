@@ -60,7 +60,7 @@
             _ => throw new ArgumentOutOfRangeException(nameof(tagState), $"Missing case for {tagState}")
         };
         <li id="album-@(albumIndex++)">
-            <details>
+            <details name="albums">
                 <summary>
                     <div class="album-artist @tagStateClass(album.ArtistTagState)" title="@tagStateTitle(album.ArtistTagState, "artist name")">@album.Artist</div>
                     <div class="album-title @tagStateClass(album.NameTagState)" title="@tagStateTitle(album.NameTagState, "album title")">@album.Name</div>
