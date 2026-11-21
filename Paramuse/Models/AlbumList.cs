@@ -43,10 +43,11 @@ public record Track
 {
     public Track(Tag tag, string path) : this
     (
-        Artist: tag.JoinedPerformers ?? tag.JoinedAlbumArtists ?? "?",
-        AlbumArtist: tag.JoinedAlbumArtists ?? "",
-        Album: tag.Album ?? "?",
-        Title: tag.Title ?? System.IO.Path.GetFileName(path),
+        // There is likely to be a lot of duplication of names, so intern all the strings.
+        Artist: string.Intern(tag.JoinedPerformers ?? tag.JoinedAlbumArtists ?? "?"),
+        AlbumArtist: string.Intern(tag.JoinedAlbumArtists ?? ""),
+        Album: string.Intern(tag.Album ?? "?"),
+        Title: string.Intern(tag.Title ?? System.IO.Path.GetFileName(path)),
         TrackNo: (int)tag.Track,
         DiscNo: (int)tag.Disc,
         Gain: !double.IsNaN(tag.ReplayGainAlbumGain) ? tag.ReplayGainAlbumGain
@@ -163,9 +164,11 @@ public sealed class AlbumList : IDisposable
             .Where(dir => Directory.EnumerateFiles(dir).Any(FileTypeHelpers.IsSupportedAudioFile))
             .ToImmutableHashSet();
         var albums = albumDirs
+            .AsParallel()
             .Select(dir =>
             {
-                var tracks = Directory.EnumerateFiles(dir, "*.*").Where(FileTypeHelpers.IsSupportedAudioFile)
+                var tracks = Directory.EnumerateFiles(dir, "*.*")
+                    .Where(FileTypeHelpers.IsSupportedAudioFile)
                     .Select(file =>
                     {
                         try
