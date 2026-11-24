@@ -2,8 +2,7 @@
 using Microsoft.IO;
 using Microsoft.Net.Http.Headers;
 using Paramuse.Models;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.Processing;
+using SkiaSharp;
 using System.Collections.Immutable;
 using TagLib;
 
@@ -48,20 +47,26 @@ public class HomeController(AlbumList albumList) : Controller
     public async Task<IActionResult> Cover(string path, string size)
     {
         var maxImageBytes = 64 * 1024;
-        async Task<Stream> Resize(Image image)
+        Stream Resize(Stream inStream)
         {
+            using var codec = SKCodec.Create(inStream);
+            using var bitmap = SKBitmap.Decode(codec);
+            var outStream = _memoryStreamManager.GetStream();
+
             if (size == "thumb")
             {
-                var newWidth = Math.Min(image.Width, 200);
-                var newHeight = (int)((newWidth / (double)image.Width) * image.Height);
-                image.Mutate(x => x.Resize(newWidth, newHeight));
+                var newWidth = Math.Min(bitmap.Width, 200);
+                var newHeight = (int)((newWidth / (double)bitmap.Width) * bitmap.Height);
+                using var resizedBitmap = bitmap.Resize(new SKSizeI(newWidth, newHeight), SKSamplingOptions.Default);
+                resizedBitmap.Encode(outStream, SKEncodedImageFormat.Jpeg, 80);
+            }
+            else
+            {
+                bitmap.Encode(outStream, SKEncodedImageFormat.Jpeg, 80);
             }
 
-            var stream = _memoryStreamManager.GetStream();
-            await image.SaveAsJpegAsync(stream, new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder() { Quality = 80 });
-            stream.Position = 0;
-
-            return stream;
+            outStream.Position = 0;
+            return outStream;
         }
 
         if (!_albums.Any(album => album.CoverPath == path || album.Tracks.Any(track => track.HasCover && track.Path == path)))
@@ -77,8 +82,8 @@ public class HomeController(AlbumList albumList) : Controller
 
             if (fileInfo.Length > maxImageBytes)
             {
-                using Image image = await Image.LoadAsync(absPath);
-                var stream = await Resize(image);
+                using var imageStream = System.IO.File.OpenRead(absPath);
+                var stream = Resize(imageStream);
 
                 return File(stream, "image/jpg");
             }
@@ -102,8 +107,8 @@ public class HomeController(AlbumList albumList) : Controller
             }
             else if (picture.Data.Count > maxImageBytes)
             {
-                using Image image = Image.Load(picture.Data.ToArray());
-                var stream = await Resize(image);
+                using var imageStream = _memoryStreamManager.GetStream([.. picture.Data]);
+                var stream = Resize(imageStream);
 
                 return File(stream, "image/jpg");
             }
