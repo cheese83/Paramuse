@@ -24,7 +24,7 @@ https://github.com/cheese83/Paramuse/assets/7817478/79793617-f709-49ce-b907-2fad
 ### Server
 
 * [.NET 6](https://dotnet.microsoft.com/en-us/download/dotnet/6.0). Both the .NET Runtime (or Desktop Runtime) _and_ the ASP.NET Core Runtime are required.
-* Windows 7 or newer (it will run on other OSes, but you'll have to recompile it from source).
+* Windows 7 64-bit or newer (it will run on other OSes, but you'll have to recompile it from source).
 * Lots of music in MP3, OGG, or FLAC format.
 
 ### Client
